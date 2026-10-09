@@ -36,18 +36,25 @@ def _evidence_tokens(ev: Evidence) -> set[str]:
     return nums | words
 
 
-def is_grounded(answer: str, evidence: Evidence) -> bool:
+def is_grounded(answer: str, evidence: Evidence,
+                question: str | None = None) -> bool:
     """Return True if every factual value in the answer appears in evidence.
 
     Numbers must match evidence numbers (rounded to 2 decimals). Capitalized
-    multi-word names and non-stopword tokens must appear in evidence. Empty
-    evidence only grounds an explicit no-data statement.
+    multi-word names must appear in the evidence — unless they appear in the
+    question itself, where they are query parameters the answer legitimately
+    echoes (F4: the filter value "Account Access" is not part of the result
+    row, but restating it is not a hallucination). A factual value absent
+    from BOTH evidence and question remains ungrounded (F3).
+
+    Empty evidence only grounds an explicit no-data statement.
     """
     if evidence.row_count == 0 and not evidence.aggregate:
         # Only a no-data statement is grounded with empty evidence.
         return True
 
-    ev_tokens = _evidence_tokens(evidence)
+    ev_text = json.dumps(evidence.model_dump()).lower()
+    question_text = (question or "").lower()
 
     # Strip list-enumeration markers ("1.", "2)", "- ") so ordinal indices are
     # not mistaken for factual data values.
@@ -69,12 +76,20 @@ def is_grounded(answer: str, evidence: Evidence) -> bool:
             except ValueError:
                 continue
         if not matched:
+            # Numbers that appear in the question (e.g. a year or threshold
+            # restated by the answer) are query parameters, not derived facts.
+            if num in question_text:
+                continue
             return False
 
     # Check capitalized name phrases (proper nouns) appear in evidence.
     for phrase in re.findall(r"(?:[A-Z][a-z]+(?: [A-Z][a-z]+)+)", answer):
-        if phrase.lower() not in json.dumps(evidence.model_dump()).lower():
-            return False
+        if phrase.lower() in ev_text:
+            continue
+        if question_text and phrase.lower() in question_text:
+            # Query parameter echoed from the question (F4).
+            continue
+        return False
 
     return True
 
@@ -92,5 +107,5 @@ class AnswerProgram(dspy.Module):
         text = str(pred.answer)
         return dspy.Prediction(
             answer=text,
-            grounded=is_grounded(text, evidence),
+            grounded=is_grounded(text, evidence, question=question),
         )
