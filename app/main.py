@@ -22,7 +22,12 @@ async def lifespan(app: FastAPI):
     """
     config = LLMConfig.from_env()
     try:
-        configure_dspy(config)
+        import dspy
+        if getattr(dspy.settings, "lm", None) is None:
+            # Not yet configured (e.g. production run): configure now.
+            configure_dspy(config)
+        # else: already configured (e.g. test session fixture on the main
+        # thread); reusing it avoids DSPy's cross-thread configure lock.
         app.state.llm_ready = True
         app.state.llm_error = None
     except LLMEndpointError as exc:
