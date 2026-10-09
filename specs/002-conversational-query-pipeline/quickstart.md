@@ -16,8 +16,13 @@ receives arbitrary SQL or unrestricted credentials.
 
 ```bash
 cp .env.example .env   # set LLM_BASE_URL and LLM_MODEL to the pinned values
+                       # (the exact pinned values are in artifacts/llm-preflight.json
+                       #  and the runner report; .env.example only has placeholders)
 python3 -m app.ai.preflight
 ```
+
+The application loads `.env` automatically at startup (`load_dotenv()` in
+`app/main.py`) — no manual `export` is needed.
 
 Preflight verifies, with **no fallback**:
 1. `GET /v1/models` lists the exact requested model ID;
@@ -43,6 +48,16 @@ Environment variables (see `.env.example`):
 | `LLM_TEMPERATURE` | `0` for measured runs |
 | `LLM_CACHE` | `false` for measured runs |
 | `GRAPHJIN_GRAPHQL_URL` | governed GraphQL endpoint (`http://127.0.0.1:8081/api/v1/graphql`) |
+
+## After a host or Docker restart (known issue)
+
+The GraphJin container can start before PostgreSQL is ready, lose its schema
+snapshot, and answer every query with "GraphJin not initialized - no database
+configured". Fix by restarting GraphJin once PostgreSQL is healthy:
+
+```bash
+sudo docker restart itsm-foundation-graphjin-1
+```
 
 ## Run the API
 
