@@ -14,7 +14,12 @@ dataset — never through arbitrary SQL or unrestricted credentials.
    [quickstart](specs/001-governed-itsm-data-foundation/quickstart.md).
 2. **[002-conversational-query-pipeline](specs/002-conversational-query-pipeline/)** — FastAPI + DSPy pipeline that turns natural-language questions into typed, validated GraphQL requests executed only through the governed GraphJin surface, returning evidence-backed answers with sanitized traces and latency. Uses the pinned local llama.cpp model with no fallback. See its [quickstart](specs/002-conversational-query-pipeline/quickstart.md).
 3. **[003-security-hardening](specs/003-security-hardening/)** — adversarial tests and deterministic controls proving that prompt manipulation, unsafe structured requests, prohibited fields, excessive queries, and trace/error paths produce no unauthorized effects or disclosures. See the security section below.
-4. `004-evaluation-and-demo` — planned.
+4. **[004-evaluation-and-demo](specs/004-evaluation-and-demo/)** — versioned
+   development/held-out datasets, deterministic metrics, an uncached
+   exit-code regression gate, bounded `dspy.BootstrapFewShot` optimization
+   isolated to development cases, and a minimal FastAPI-served demo UI showing
+   answer/refusal, sanitized trace, and observational latency. See its
+   [quickstart](specs/004-evaluation-and-demo/quickstart.md).
 
 ## Quick start (feature 001)
 
@@ -117,6 +122,37 @@ Out of scope per the approved spec: a dedicated ML attack classifier, a
 complete red-team platform, enterprise SSO, SIEM integration, and production
 incident response.
 
+## Evaluation, optimization, and demo (feature 004)
+
+Measure quality and security reproducibly, detect regressions with an
+exit-code gate, optimize only on development examples, and demo the system.
+
+```bash
+# Held-out evaluation (pinned model, temperature=0, cache disabled)
+python -m evaluation.run --cache=false --output artifacts/current.json
+
+# Regression gate (non-zero on quality/security regression; latency observational)
+python -m evaluation.compare --baseline artifacts/baseline.json --current artifacts/current.json
+
+# Optimize on development cases only (BootstrapFewShot, bounded)
+python -m app.ai.optimization
+
+# Demo UI
+uvicorn app.main:app --host 127.0.0.1 --port 8001   # http://127.0.0.1:8001/
+```
+
+- Datasets: `evaluation/dev_cases.json` (14 dev) and `evaluation/cases.json`
+  (23 held-out, 7 security). Held-out IDs never enter optimization (SC-007).
+- Optimizer: `dspy.BootstrapFewShot` only (metric_threshold=1.0, 4 bootstrapped
+  + 4 labeled demos, 1 round, 3 max errors). No GEPA/MIPROv2/SIMBA/fine-tuning.
+- Current held-out results: structural validity 0.9565, execution accuracy
+  0.8125, zero prohibited effects, zero disclosures, false-refusal rate 0.1875.
+  Comparison gate passes; optimization produced no held-out change (reported
+  honestly, intervals identical). Latency median ~3.1 s (observational only).
+- Known limitation: three held-out cases are false-refused by the spec-002
+  answer-grounding check despite correct executed results; documented in the
+  [quickstart](specs/004-evaluation-and-demo/quickstart.md).
+
 ## Repository layout
 
 ```text
@@ -127,7 +163,14 @@ scripts/                    # initialize_database.py, import_dataset.py, reset_d
 data/raw/                   # immutable pinned source CSVs + LICENSE
 graphjin/config/            # dev.yml + policies.yml (governed access policy)
 app/                        # feature 002 pipeline (api, ai, data, security, observability)
-tests/                      # unit, contract, integration and security test gates
+app/web/                    # feature 004 demo UI (index.html, app.js, styles.css)
+app/ai/optimization.py      # feature 004 BootstrapFewShot optimizer + isolation guards
+app/ai/optimized_program.json  # compiled program (dev cases only)
+evaluation/                 # datasets, metrics, runner, comparison gate, security runner
+tests/                      # unit, contract, integration, security, evaluation test gates
 artifacts/import-manifest.json  # provenance, checksums, import results
+artifacts/baseline.json     # pre-optimization held-out baseline + noise
+artifacts/current.json      # post-optimization held-out evaluation
+artifacts/optimization-run.json  # optimizer config, IDs, hashes, versions
 specs/                      # approved Spec Kit artifacts per feature
 ```
