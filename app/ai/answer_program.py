@@ -49,8 +49,13 @@ def is_grounded(answer: str, evidence: Evidence) -> bool:
 
     ev_tokens = _evidence_tokens(evidence)
 
+    # Strip list-enumeration markers ("1.", "2)", "- ") so ordinal indices are
+    # not mistaken for factual data values.
+    scrubbed = re.sub(r"(?m)^\s*\d+[.)]\s+", " ", answer)
+    scrubbed = re.sub(r"\s\d+[.)]\s+", " ", scrubbed)
+
     # Check numbers.
-    for num in _NUM_RE.findall(answer):
+    for num in _NUM_RE.findall(scrubbed):
         try:
             val = round(float(num), 2)
         except ValueError:
