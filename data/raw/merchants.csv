@@ -1,0 +1,113 @@
+merchant_id,merchant_name,sector,tier,region
+101,The Liberty Corporation,Fashion,Advanced,UK & Europe
+102,Burlington Coat Factory,Sporting Goods,Advanced,UK & Europe
+103,Wealth Zone Group,Electronics,Advanced,Asia-Pacific
+104,American Axle,Pharmaceuticals,Advanced,Asia-Pacific
+105,Hyland Software,Sporting Goods,Advanced,Asia-Pacific
+106,Prestigabiz,Electronics,Advanced,Asia-Pacific
+107,Alladin's Lamp,Home & Garden,Advanced,UK & Europe
+108,Earthworks Yard Maintenance,Pharmaceuticals,Advanced,North America
+109,Interplay Entertainment,Home & Garden,Advanced,North America
+110,Textron Inc.,Fashion,Advanced,UK & Europe
+111,Locost Accessories,Grocery,Advanced,North America
+112,Zoom Technologies,Home & Garden,Advanced,UK & Europe
+113,Gold Touch,Fashion,Advanced,UK & Europe
+114,National Railway Equipment Company,Grocery,Advanced,Asia-Pacific
+115,Berkshire Hathaway,Sporting Goods,Advanced,Asia-Pacific
+116,Tempur-Pedic,Pharmaceuticals,Advanced,Asia-Pacific
+117,Stratabiz,Home & Garden,Advanced,North America
+118,Energizer Holdings,Home & Garden,Advanced,Asia-Pacific
+119,Pro Yard Services,Fashion,Advanced,Asia-Pacific
+120,Dollar Tree,Fashion,Advanced,UK & Europe
+121,Airgas,Sporting Goods,Advanced,UK & Europe
+122,Eureka,Sporting Goods,Advanced,Asia-Pacific
+123,WWW Realty,Electronics,Foundation,UK & Europe
+124,OpenMarket Inc.,Pharmaceuticals,Foundation,UK & Europe
+125,Cut Rite,Fashion,Foundation,North America
+126,Solution Bridge,Pharmaceuticals,Foundation,North America
+127,Afforda Merchant Services,Grocery,Foundation,North America
+128,Crazy Tiger,Electronics,Foundation,North America
+129,Royal Gas,Fashion,Foundation,Asia-Pacific
+130,JN-International Medical Corporation,Fashion,Foundation,Asia-Pacific
+131,H. J. Heinz Company,Fashion,Foundation,UK & Europe
+132,Mission Realty,Sporting Goods,Foundation,North America
+133,Good Times,Grocery,Foundation,North America
+134,Amazon.com,Fashion,Foundation,North America
+135,Monk Home Loans,Home & Garden,Foundation,North America
+136,Bemis Manufacturing Company,Home & Garden,Foundation,North America
+137,Bechtel,Fashion,Foundation,North America
+138,National Railway Equipment Company,Electronics,Foundation,Asia-Pacific
+139,Miro Technologies,Pharmaceuticals,Foundation,North America
+140,YRC Worldwide Inc.,Fashion,Foundation,North America
+141,Planetbiz,Pharmaceuticals,Foundation,North America
+142,QuickTrip,Fashion,Foundation,North America
+143,Hyland Software,Home & Garden,Foundation,Asia-Pacific
+144,Atari,Fashion,Foundation,UK & Europe
+145,DiC Entertainment,Home & Garden,Foundation,UK & Europe
+146,Omni Source,Electronics,Foundation,North America
+147,AutoZone,Electronics,Foundation,North America
+148,Cartoon Network Studios,Grocery,Foundation,UK & Europe
+149,Awthentikz,Grocery,Foundation,UK & Europe
+150,American International Group,Electronics,Foundation,UK & Europe
+151,Venus Swimwear,Grocery,Foundation,Asia-Pacific
+152,Whole Foods Market,Grocery,Foundation,UK & Europe
+153,Grade A Investment,Fashion,Foundation,Asia-Pacific
+154,Best Biz Survis,Sporting Goods,Foundation,Asia-Pacific
+155,Federal National Mortgage Association,Grocery,Foundation,Asia-Pacific
+156,Ameren,Sporting Goods,Foundation,UK & Europe
+157,Electric Boat,Sporting Goods,Foundation,UK & Europe
+158,System Star Solutions,Pharmaceuticals,Foundation,Asia-Pacific
+159,Salary.com,Pharmaceuticals,Foundation,UK & Europe
+160,Gold Leaf Garden Management,Fashion,Foundation,Asia-Pacific
+161,NetApp,Grocery,Foundation,North America
+162,American Eagle Outfitters,Grocery,Foundation,Asia-Pacific
+163,Architectural Genie,Home & Garden,Foundation,UK & Europe
+164,Affinity Investment Group,Sporting Goods,Foundation,North America
+165,Pearl Architectural Design,Sporting Goods,Foundation,Asia-Pacific
+166,Sky High Financial Advice,Grocery,Foundation,Asia-Pacific
+167,Shure Incorporated,Electronics,Foundation,Asia-Pacific
+168,Hyland Software,Home & Garden,Foundation,Asia-Pacific
+169,Baker Hughes,Grocery,Foundation,UK & Europe
+170,"FileMaker Inc., formerly Claris Corp.",Pharmaceuticals,Foundation,Asia-Pacific
+171,Publix,Home & Garden,Foundation,Asia-Pacific
+172,Fireball,Sporting Goods,Foundation,UK & Europe
+173,Express Scripts Incorporated,Pharmaceuticals,Foundation,North America
+174,Monsanto Company,Fashion,Foundation,UK & Europe
+175,Zoo York,Sporting Goods,Foundation,Asia-Pacific
+176,Under Armour,Grocery,Foundation,UK & Europe
+177,Oreck Corporation,Fashion,Foundation,North America
+178,Dow Chemical Company,Electronics,Foundation,Asia-Pacific
+179,Amazon.com,Electronics,Foundation,Asia-Pacific
+180,Castle Realty,Sporting Goods,Foundation,UK & Europe
+181,Deere & Company,Fashion,Foundation,UK & Europe
+182,Miller Brewing,Sporting Goods,Foundation,Asia-Pacific
+183,Rivera Property Maintenance,Home & Garden,Foundation,North America
+184,Nabisco,Pharmaceuticals,Foundation,UK & Europe
+185,CNET,Home & Garden,Foundation,UK & Europe
+186,Fiserv,Electronics,Foundation,North America
+187,Boeing,Fashion,Foundation,North America
+188,Vizio,Home & Garden,Foundation,Asia-Pacific
+189,Acuity Brands,Pharmaceuticals,Foundation,Asia-Pacific
+190,Comodo,Fashion,Foundation,UK & Europe
+191,Xray Eye & Vision Clinics,Home & Garden,Foundation,UK & Europe
+192,Syntel,Grocery,Foundation,UK & Europe
+193,Kenworth,Sporting Goods,Foundation,North America
+194,Aspyr Media,Grocery,Foundation,UK & Europe
+195,QCR Holdings,Grocery,Foundation,Asia-Pacific
+196,Strong Life,Home & Garden,Foundation,Asia-Pacific
+197,Energy East,Grocery,Foundation,North America
+198,Magna Solution,Electronics,Foundation,UK & Europe
+199,Avery Dennison,Sporting Goods,Foundation,North America
+200,Affinity Investment Group,Fashion,Foundation,Asia-Pacific
+201,DTE Energy,Sporting Goods,Foundation,North America
+202,Columbia Pictures,Grocery,Foundation,UK & Europe
+203,Frontier Airlines,Home & Garden,Foundation,UK & Europe
+204,BlueLinx Holdings,Pharmaceuticals,Foundation,North America
+205,Aflac,Pharmaceuticals,Foundation,Asia-Pacific
+206,Office Depot,Grocery,Foundation,UK & Europe
+207,Audiovox,Grocery,Foundation,UK & Europe
+208,The Spotted Cougar,Sporting Goods,Foundation,UK & Europe
+209,Dereon,Pharmaceuticals,Foundation,North America
+210,Total Network Development,Fashion,Foundation,North America
+211,NBC Universal,Electronics,Foundation,UK & Europe
+212,"Sun Microsystems, Inc.",Grocery,Foundation,Asia-Pacific

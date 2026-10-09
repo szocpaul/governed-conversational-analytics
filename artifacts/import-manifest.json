@@ -1,0 +1,62 @@
+{
+  "dataset": {
+    "name": "Synthetic ITSM Helpdesk Ticket Dataset",
+    "source_repository": "https://github.com/drapertoby/itsm-ticket-dataset",
+    "pinned_commit_sha": "cf2e4e07ebcabb9c1234642585ee6f5bc2aa3e1b",
+    "commit_date": "2026-08-21T11:51:47Z",
+    "license": {
+      "spdx_id": "MIT",
+      "file": "data/raw/LICENSE",
+      "copyright_holder": "drapertoby",
+      "attribution": "Synthetic ITSM Helpdesk Ticket Dataset by drapertoby (https://github.com/drapertoby/itsm-ticket-dataset), MIT License"
+    },
+    "retrieved_at": "2026-10-09T16:49:49.790598+00:00",
+    "files": {
+      "merchants.csv": {
+        "path": "data/raw/merchants.csv",
+        "sha256": "4356ce83aa038a3c1e58b4d54c2edcdf04590b2ed4ac22b4cb68a950eec7b1bf",
+        "size_bytes": 6405,
+        "source_url": "https://raw.githubusercontent.com/drapertoby/itsm-ticket-dataset/cf2e4e07ebcabb9c1234642585ee6f5bc2aa3e1b/merchants.csv"
+      },
+      "agents.csv": {
+        "path": "data/raw/agents.csv",
+        "sha256": "2ff2a4b3370d439ad451e27ed32856d6c6d481621da71bcc4bc9a7c29e7408f5",
+        "size_bytes": 1249,
+        "source_url": "https://raw.githubusercontent.com/drapertoby/itsm-ticket-dataset/cf2e4e07ebcabb9c1234642585ee6f5bc2aa3e1b/agents.csv"
+      },
+      "tickets.csv": {
+        "path": "data/raw/tickets.csv",
+        "sha256": "768dc342aa1eb31a707a42510f69bc6699f214accee052822cf8470988912f15",
+        "size_bytes": 429516,
+        "source_url": "https://raw.githubusercontent.com/drapertoby/itsm-ticket-dataset/cf2e4e07ebcabb9c1234642585ee6f5bc2aa3e1b/tickets.csv"
+      },
+      "LICENSE": {
+        "path": "data/raw/LICENSE",
+        "sha256": "372a4354cc03df562a0f2f8db5501a0817134687ba527717bae9406836c697b6",
+        "size_bytes": 1067,
+        "source_url": "https://raw.githubusercontent.com/drapertoby/itsm-ticket-dataset/cf2e4e07ebcabb9c1234642585ee6f5bc2aa3e1b/LICENSE"
+      }
+    }
+  },
+  "import": {
+    "imported_at": "2026-10-09T16:59:38.671066+00:00",
+    "row_counts": {
+      "merchants": 112,
+      "agents": 20,
+      "tickets": 2057
+    },
+    "validation": {
+      "passed": true,
+      "checks": [
+        "sha256 checksums of raw files match manifest",
+        "unique non-null business keys",
+        "required fields present",
+        "timestamp and boolean conversion",
+        "foreign-key integrity",
+        "post-import row counts match source",
+        "atomic single-transaction import"
+      ]
+    }
+  },
+  "notes": "Raw files are immutable. Import results are recorded under the 'import' key by scripts/import_dataset.py."
+}
