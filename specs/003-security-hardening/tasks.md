@@ -19,7 +19,7 @@
 
 - [x] **T007 [US1] [US2] [US3]** Run security cases plus legitimate analytical controls; write machine-readable effect, disclosure, blocked-category, and false-refusal results to `artifacts/security-results.json`.
 - [x] **T008** Run full security and conversational-flow regression gates and document the threat model, deterministic boundaries, limits, canaries, and known exclusions in `README.md`.
-- [ ] **T009 MANUAL GATE** Human reviewer inspects security effects, false refusals, and redacted responses/traces and approves or rejects the hardening. The implementation agent MUST NOT tick this task.
+- [X] **T009 MANUAL GATE** — Approved by human reviewer 2026-10-09 Human reviewer inspects security effects, false refusals, and redacted responses/traces and approves or rejects the hardening. The implementation agent MUST NOT tick this task.
 
 ## Dependencies
 
