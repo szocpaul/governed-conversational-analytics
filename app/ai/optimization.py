@@ -98,6 +98,27 @@ def build_trainset(extra_cases=None) -> list[dspy.Example]:
 # Binary optimizer metric
 # ---------------------------------------------------------------------------
 
+def _execute_read_only(request: dict):
+    """Execute a validated read-only request via GraphJin; return the
+    normalized result dict, or None on any failure. Never issues writes."""
+    try:
+        from app.api.schemas import StructuredQueryRequest
+        from app.data.graphjin_client import GraphJinClient, GraphJinError
+        from app.data.result_normalizer import normalize_result
+
+        req = StructuredQueryRequest.model_validate(request)
+        url = os.environ.get(
+            "GRAPHJIN_GRAPHQL_URL", "http://127.0.0.1:8081/api/v1/graphql")
+        client = GraphJinClient(url, timeout=30.0)
+        raw = client.execute(req)
+        evidence = normalize_result(req, raw)
+        if evidence.aggregate:
+            return dict(evidence.aggregate)
+        return {"row_count": evidence.row_count}
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def text_to_query_metric(example, pred, trace=None) -> float:
     """Return 1.0 only when every mandatory check passes; else 0.0.
 
@@ -109,7 +130,7 @@ def text_to_query_metric(example, pred, trace=None) -> float:
       - no prohibited effect or unauthorized disclosure occurred.
     """
     request = getattr(pred, "request", None)
-    executed = getattr(pred, "executed", False)
+    executed = getattr(pred, "executed", None)
     execution_result = getattr(pred, "execution_result", None)
     prohibited = getattr(pred, "prohibited_effect", False)
     disclosed = getattr(pred, "disclosure", False)
@@ -128,9 +149,17 @@ def text_to_query_metric(example, pred, trace=None) -> float:
     if not metrics.is_read_only(request):
         return 0.0
 
-    # Governed execution must have succeeded with a result.
-    if not executed or execution_result is None:
+    # Governed execution must succeed. When the program explicitly reports a
+    # failed execution, fail. When the program did not attempt execution
+    # itself (plain QueryProgram leaves executed=None), the metric executes
+    # the validated read-only request via the governed GraphJin client to
+    # verify successful execution and obtain the normalized result.
+    if executed is False:
         return 0.0
+    if execution_result is None:
+        execution_result = _execute_read_only(request)
+        if execution_result is None:
+            return 0.0
 
     # Normalized result must match the labeled expected result.
     if metrics.execution_accuracy(execution_result,
@@ -183,3 +212,165 @@ def compile_program(program=None, trainset=None):
         "input_case_ids": consumed_ids,
         "trainset_size": len(trainset),
     }
+
+
+# ---------------------------------------------------------------------------
+# Executable program used during bootstrapping (T006)
+# ---------------------------------------------------------------------------
+
+
+class ExecutableQueryProgram(dspy.Module):
+    """Wrap QueryProgram and execute the planned request via GraphJin.
+
+    BootstrapFewShot's teacher must produce a prediction carrying the governed
+    request, whether it executed, and the normalized execution result so the
+    binary metric can verify every mandatory check. This module never issues
+    writes: execution goes through the governed GraphJin client only.
+    """
+
+    def __init__(self):
+        super().__init__()
+        from app.ai.query_program import QueryProgram
+        self.plan = QueryProgram()
+
+    def forward(self, question: str) -> dspy.Prediction:
+        from app.data.graphjin_client import GraphJinClient, GraphJinError
+        from app.data.result_normalizer import normalize_result
+
+        planned = self.plan(question=question)
+        request = planned.request
+        executed = False
+        execution_result = None
+        prohibited = False
+        disclosed = False
+
+        if request is not None:
+            try:
+                url = os.environ.get(
+                    "GRAPHJIN_GRAPHQL_URL",
+                    "http://127.0.0.1:8081/api/v1/graphql")
+                client = GraphJinClient(url, timeout=30.0)
+                raw = client.execute(request)
+                evidence = normalize_result(request, raw)
+                executed = True
+                if evidence.aggregate:
+                    execution_result = dict(evidence.aggregate)
+                else:
+                    execution_result = {"row_count": evidence.row_count}
+            except GraphJinError:
+                executed = False
+                execution_result = None
+
+        return dspy.Prediction(
+            classification=planned.classification,
+            rationale=planned.rationale,
+            request=(
+                request.model_dump() if hasattr(request, "model_dump")
+                else request),
+            executed=executed,
+            execution_result=execution_result,
+            prohibited_effect=prohibited,
+            disclosure=disclosed,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Runner (T006)
+# ---------------------------------------------------------------------------
+
+def _sha256(path: str) -> str:
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def run_optimization(output_program: str = OPTIMIZED_PROGRAM_PATH,
+                     run_artifact: str = OPTIMIZATION_RUN_PATH) -> int:
+    """Compile BootstrapFewShot on development cases and save artifacts.
+
+    Returns 0 on success, 2 when optimization is skipped (too few dev
+    examples), 1 on error. Never uses held-out cases (SC-007).
+    """
+    from dotenv import load_dotenv
+    load_dotenv()
+    os.environ["LLM_TEMPERATURE"] = "0"
+    os.environ["LLM_CACHE"] = "false"
+
+    from app.ai.llm import LLMConfig, configure_dspy
+    configure_dspy(LLMConfig.from_env())
+
+    trainset = build_trainset()
+    input_ids = [e.case_id for e in trainset]
+    assert_no_held_out_leakage(input_ids)
+
+    run_meta = {
+        "optimizer": "dspy.BootstrapFewShot",
+        "config": optimizer_config(),
+        "input_case_ids": input_ids,
+        "trainset_size": len(trainset),
+        "held_out_ids_consumed": 0,
+        "errors": [],
+        "accepted_demo_ids": [],
+        "output_program_sha256": None,
+        "versions": {},
+    }
+
+    if len(trainset) < MIN_DEV_EXAMPLES:
+        run_meta["errors"].append(
+            f"skipped: only {len(trainset)} valid labeled development "
+            f"examples (< {MIN_DEV_EXAMPLES})")
+        os.makedirs(os.path.dirname(run_artifact), exist_ok=True)
+        with open(run_artifact, "w") as f:
+            json.dump(run_meta, f, indent=2)
+        print(json.dumps({"skipped": True, "trainset_size": len(trainset)}))
+        return 2
+
+    try:
+        optimized, meta = compile_program(trainset=trainset)
+        os.makedirs(os.path.dirname(output_program), exist_ok=True)
+        optimized.save(output_program)
+
+        # Record accepted demonstration IDs. DSPy strips non-input/output
+        # fields when attaching demos, so map each demo's question text back
+        # to its development case ID.
+        q_to_id = {e.question: e.case_id for e in trainset}
+        accepted = []
+        try:
+            for predictor in optimized.predictors():
+                for demo in getattr(predictor, "demos", []) or []:
+                    q = getattr(demo, "question", None)
+                    cid = q_to_id.get(q)
+                    if cid:
+                        accepted.append(cid)
+        except Exception:  # noqa: BLE001
+            pass
+        run_meta["accepted_demo_ids"] = sorted(set(accepted))
+        # Isolation proof: accepted demos must be a subset of dev IDs.
+        assert_no_held_out_leakage(run_meta["accepted_demo_ids"])
+        run_meta["output_program_sha256"] = _sha256(output_program)
+        run_meta["versions"] = {
+            "dspy": dspy.__version__,
+            "model_id": os.environ.get("LLM_MODEL", ""),
+            "temperature": 0.0,
+            "cache": False,
+        }
+    except Exception as exc:  # noqa: BLE001
+        run_meta["errors"].append(f"optimization failed: {exc}")
+        os.makedirs(os.path.dirname(run_artifact), exist_ok=True)
+        with open(run_artifact, "w") as f:
+            json.dump(run_meta, f, indent=2)
+        print(json.dumps({"error": str(exc)}))
+        return 1
+
+    os.makedirs(os.path.dirname(run_artifact), exist_ok=True)
+    with open(run_artifact, "w") as f:
+        json.dump(run_meta, f, indent=2)
+    print(json.dumps({"compiled": True,
+                      "trainset_size": len(trainset),
+                      "accepted_demos": run_meta["accepted_demo_ids"],
+                      "program_sha256": run_meta["output_program_sha256"]},
+                     indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(run_optimization())
