@@ -48,6 +48,21 @@ def create_app() -> FastAPI:
     def health() -> dict:
         return {"status": "ok"}
 
+    # Demo UI (spec 004, T008): serve the static interface at / and its
+    # assets at /static. Minimal wiring; the query path is unchanged.
+    import os as _os
+
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    web_dir = _os.path.join(_os.path.dirname(__file__), "web")
+    if _os.path.isdir(web_dir):
+        app.mount("/static", StaticFiles(directory=web_dir), name="static")
+
+        @app.get("/", include_in_schema=False)
+        def index() -> FileResponse:
+            return FileResponse(_os.path.join(web_dir, "index.html"))
+
     return app
 
 

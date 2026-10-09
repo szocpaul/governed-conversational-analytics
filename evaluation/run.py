@@ -82,8 +82,9 @@ def collect_metadata(cache: bool) -> dict:
         try:
             with open(manifest) as f:
                 m = json.load(f)
-            source_data_version = m.get("dataset_commit") or m.get(
-                "commit") or "unknown"
+            source_data_version = (
+                (m.get("dataset") or {}).get("pinned_commit_sha")
+                or m.get("dataset_commit") or m.get("commit") or "unknown")
         except Exception:  # noqa: BLE001
             source_data_version = "unknown"
 
