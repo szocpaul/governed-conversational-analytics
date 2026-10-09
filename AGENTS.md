@@ -14,7 +14,7 @@ When instructions conflict, use this order:
 2. Approved `spec.md`
 3. Approved `plan.md`
 4. Approved `tasks.md`
-5. This `Agent.md`
+5. This `AGENTS.md`
 6. Existing implementation conventions that do not conflict with the above
 
 Report unresolved conflicts and stop before implementing the affected work.
