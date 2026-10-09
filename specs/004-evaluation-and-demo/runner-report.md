@@ -165,3 +165,10 @@ reported separately above.
   implementation agent.
 
 The project is not complete until this final human manual gate is approved.
+
+## 14. Status delivery
+
+A concise status summary was sent to the `spec001-launcher` sibling via
+`agent_message` (message id `agentmsg_d21ed189-c5ef-46a7-9f7b-7bdcf2aa81cc`,
+deliveryStatus: delivered, 2026-10-09T21:37:09Z). The launcher session was
+idle at send time; the message was accepted and delivered by the daemon.
