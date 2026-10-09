@@ -62,13 +62,16 @@ sudo docker restart itsm-foundation-graphjin-1
 ## Run the API
 
 ```bash
-uvicorn app.main:app --host 127.0.0.1 --port 8000
+uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
+
+(Port 8000 is occupied by another project on this machine; use 8001 or any
+free port.)
 
 Then:
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/query   -H 'Content-Type: application/json'   -d '{"question": "How many P1 tickets are there?"}'
+curl -s -X POST http://127.0.0.1:8001/query   -H 'Content-Type: application/json'   -d '{"question": "How many P1 tickets are there?"}'
 ```
 
 ## Supported question patterns
