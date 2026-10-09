@@ -17,6 +17,10 @@ from app.api.schemas import Evidence
 
 _NUM_RE = re.compile(r"(?<![A-Za-z0-9_.])-?\d+(?:\.\d+)?(?![A-Za-z0-9_])")
 _WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9_\-]+")
+_NO_DATA_RE = re.compile(
+    r"no matching data|no data (was )?found|no results? (were )?found|"
+    r"no records? (were )?found|did not return any|"
+    r"no .{0,30} (were|was) found", re.IGNORECASE)
 
 # Common stopwords that are not factual values.
 _STOP = {
@@ -49,12 +53,21 @@ def is_grounded(answer: str, evidence: Evidence,
 
     Empty evidence only grounds an explicit no-data statement.
     """
+    ev_text = json.dumps(evidence.model_dump()).lower()
+    question_text = (question or "").lower()
+
     if evidence.row_count == 0 and not evidence.aggregate:
         # Only a no-data statement is grounded with empty evidence.
         return True
 
-    ev_text = json.dumps(evidence.model_dump()).lower()
-    question_text = (question or "").lower()
+    # A "no data" claim contradicts non-empty evidence (F6: count=1037 was
+    # answered with "no matching data"). Detect explicit no-data phrasing and
+    # refuse it when the evidence actually contains a result.
+    if _NO_DATA_RE.search(answer):
+        has_value = bool(evidence.rows) or any(
+            v is not None for v in (evidence.aggregate or {}).values())
+        if has_value:
+            return False
 
     # Strip list-enumeration markers ("1.", "2)", "- ") so ordinal indices are
     # not mistaken for factual data values.

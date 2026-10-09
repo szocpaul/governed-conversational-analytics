@@ -32,7 +32,7 @@
     "DEV-007",
     "DEV-014"
   ],
-  "output_program_sha256": "91bed3b955dd35c02211261a48761b5661b05f680011f74f5b4366b343623f10",
+  "output_program_sha256": "cea31477654470293d1861441f1080c686f4bc2294d3686e5e6ffef046f83d0b",
   "versions": {
     "dspy": "3.2.1",
     "model_id": "models\\Qwen3.8-27B-UD-Q4_K_M.gguf",
