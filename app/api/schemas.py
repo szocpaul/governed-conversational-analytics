@@ -36,6 +36,45 @@ RELATIONSHIPS: dict[str, set[str]] = {
     "agents": {"tickets"},
 }
 
+# Column value types (mirrors database/schema.sql). The deterministic
+# validator uses these to reject type-incompatible filter values and
+# aggregates BEFORE any GraphJin call (F6, F9, F10).
+COLUMN_TYPES: dict[str, str] = {
+    "merchant_id": "integer",
+    "agent_id": "integer",
+    "ticket_id": "integer",
+    "assigned_agent_id": "integer",
+    "merchant_name": "text",
+    "sector": "text",
+    "tier": "text",
+    "region": "text",
+    "agent_name": "text",
+    "primary_category": "text",
+    "shift_region": "text",
+    "category": "text",
+    "sub_category": "text",
+    "priority": "text",
+    "efficiency_multiplier": "numeric",
+    "ttfr_hours": "numeric",
+    "resolution_hours": "numeric",
+    "csat_score": "numeric",
+    "created_at": "timestamp",
+    "first_response_at": "timestamp",
+    "closed_at": "timestamp",
+    "is_legacy": "boolean",
+    "category_mismatch": "boolean",
+    "response_breached": "boolean",
+    "resolution_breached": "boolean",
+    "is_reopened": "boolean",
+    "is_reopen_child": "boolean",
+    "is_incident_ticket": "boolean",
+}
+
+# Aggregate functions that require a numeric field (avg/sum). count works on
+# any field; min/max work on numeric and timestamp fields.
+_NUMERIC_AGGREGATES = {"avg", "sum"}
+_ORDERABLE_TYPES = {"integer", "numeric", "timestamp"}
+
 MAX_LIMIT = 100  # matches GraphJin default_limit hard cap
 
 FilterOp = Literal["eq", "ne", "gt", "gte", "lt", "lte", "in", "like"]

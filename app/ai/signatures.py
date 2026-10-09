@@ -20,6 +20,20 @@ class ClassifyQuestion(dspy.Signature):
     Decide whether the question is a supported analytical question over the
     governed ITSM dataset (tickets, merchants, agents), is materially
     ambiguous and needs clarification, or is unsupported/out of scope.
+
+    A question is SUPPORTED only when it can be answered by ONE simple query:
+    a single list of rows, or a single aggregate (count/sum/avg/min/max)
+    with optional filters and ordering.
+
+    Classify as AMBIGUOUS when the question asks for several things at once
+    (multi-part, e.g. "which agent is best AND how many tickets"), because a
+    single governed query cannot answer every part and no part may be
+    silently dropped.
+
+    Classify as UNSUPPORTED when the question needs query shapes the schema
+    cannot express: per-group breakdowns (GROUP BY), "by category/sector/
+    region" distributions, comparisons across groups, or data outside the
+    governed dataset.
     """
 
     question: str = dspy.InputField(desc="the user's natural-language question")
@@ -55,6 +69,22 @@ class PlanQuery(dspy.Signature):
     - Use created_at with gte/lt for time ranges (ISO dates).
     - relationships may include merchants and/or agents from tickets.
     - limit must be between 1 and 100.
+    - order_by is a single field NAME (string), order_dir is "asc" or "desc".
+      For "highest/lowest/most/least/newest/oldest" questions you MUST set
+      order_by on the relevant field with the matching direction and a small
+      limit, so the returned row is the actual extremum.
+    - avg and sum are ONLY valid on numeric fields (ttfr_hours,
+      resolution_hours, csat_score, efficiency_multiplier). For ratios over
+      boolean flags (e.g. SLA breach percentage), use count with a filter on
+      the flag instead of avg/sum on the boolean.
+    - Filter values must match the column type: integer ids take integers,
+      boolean flags take true/false, text fields take strings. Never filter
+      an id field with a name; never use null as a filter value (no is-null
+      operator exists).
+    - The schema CANNOT group results: NEVER emit group_by, having, distinct,
+      joins, or subqueries. If the question needs a per-group breakdown,
+      plan only the single aggregate or list that answers it without
+      grouping.
     - NEVER output SQL. Output ONLY the JSON request object.
     """
 

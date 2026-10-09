@@ -29,7 +29,7 @@ from app.data.graphjin_client import GraphJinClient, GraphJinError
 from app.data.result_normalizer import normalize_result
 from app.observability.trace import Trace
 from app.security.classifier import classify_question
-from app.security.errors import PipelineError
+from app.security.errors import PipelineError, UnsupportedQuestionError
 from app.security.redaction import redact
 from app.security.validator import validate_request
 
@@ -117,6 +117,16 @@ def _query_inner(req: QuestionRequest) -> QueryResponse:
     try:
         qp = _make_query_program()
         planned = qp(question=req.question)
+    except UnsupportedQuestionError as exc:
+        # Planner emitted a query shape the governed pipeline does not
+        # support (GROUP BY, HAVING, ...). Stable category; no query ran.
+        trace.add("refused", f"unsupported request shape: {exc.sanitized}")
+        return _response(
+            "unsupported",
+            "That question needs a query shape outside the supported ITSM "
+            "analytics scope (for example, grouped breakdowns).",
+            trace,
+        )
     except PipelineError as exc:
         trace.add("error", exc.sanitized)
         return _response(exc.code, exc.sanitized, trace)
