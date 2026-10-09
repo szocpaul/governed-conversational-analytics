@@ -12,7 +12,7 @@ dataset — never through arbitrary SQL or unrestricted credentials.
    GraphQL surface with explicit entity/field allowlists, result limits, and a
    database-query timeout. See its
    [quickstart](specs/001-governed-itsm-data-foundation/quickstart.md).
-2. `002-conversational-query-pipeline` — planned (DSPy planning over the governed surface).
+2. **[002-conversational-query-pipeline](specs/002-conversational-query-pipeline/)** — FastAPI + DSPy pipeline that turns natural-language questions into typed, validated GraphQL requests executed only through the governed GraphJin surface, returning evidence-backed answers with sanitized traces and latency. Uses the pinned local llama.cpp model with no fallback. See its [quickstart](specs/002-conversational-query-pipeline/quickstart.md).
 3. `003-security-hardening` — planned.
 4. `004-evaluation-and-demo` — planned.
 
@@ -30,6 +30,17 @@ pytest -q
 Dataset: [Synthetic ITSM Helpdesk Ticket Dataset](https://github.com/drapertoby/itsm-ticket-dataset)
 by drapertoby, MIT License, pinned to commit `cf2e4e07ebcabb9c1234642585ee6f5bc2aa3e1b`.
 
+## Quick start (feature 002)
+
+```bash
+cp .env.example .env          # set LLM_BASE_URL and LLM_MODEL to pinned values
+python3 -m app.ai.preflight   # verify the pinned local model (no fallback)
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+curl -s -X POST http://127.0.0.1:8000/query \
+  -H 'Content-Type: application/json' \
+  -d '{"question": "How many P1 tickets are there?"}'
+```
+
 ## Repository layout
 
 ```text
@@ -39,7 +50,8 @@ database/                   # bootstrap.sql, schema.sql, roles.sql
 scripts/                    # initialize_database.py, import_dataset.py, reset_database.py
 data/raw/                   # immutable pinned source CSVs + LICENSE
 graphjin/config/            # dev.yml + policies.yml (governed access policy)
-tests/                      # integration and security test gates
+app/                        # feature 002 pipeline (api, ai, data, security, observability)
+tests/                      # unit, contract, integration and security test gates
 artifacts/import-manifest.json  # provenance, checksums, import results
 specs/                      # approved Spec Kit artifacts per feature
 ```
