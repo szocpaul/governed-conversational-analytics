@@ -12,3 +12,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE itsm_owner IN SCHEMA itsm
 -- Defense in depth: explicitly deny writes/DDL for the read-only role.
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
     ON ALL TABLES IN SCHEMA itsm FROM itsm_readonly;
+
+-- Deterministic database-query timeout for the governed query path:
+-- any statement run by the read-only role is aborted after 5 seconds.
+ALTER ROLE itsm_readonly SET statement_timeout = '5s';

@@ -26,18 +26,18 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      # GraphJin reads config from /config; database URL comes from dev.yml env expansion
-      GRAPHJIN_DB_URL: postgres://${GRAPHJIN_DB_USER:?set GRAPHJIN_DB_USER in .env}:${GRAPHJIN_DB_PASSWORD:?set GRAPHJIN_DB_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-itsm}?sslmode=disable
+      GO_ENV: dev
+    command: ["serve", "--path", "/config"]
     volumes:
-      - ./graphjin/config:/config:ro
+      # GraphJin writes managed state (artifact SQLite, discovery snapshots)
+      # under <config>/.graphjin/, so the mount must be writable. The governed
+      # policy files themselves are protected by host file permissions and Git.
+      - ./graphjin/config:/config
     ports:
-      - "127.0.0.1:${GRAPHJIN_PORT:-8080}:8080"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
+      - "127.0.0.1:${GRAPHJIN_PORT:-8081}:8080"
+    # The distroless image has no shell/wget/curl, so no container-level
+    # healthcheck is possible; readiness is verified by polling /healthz
+    # from the host (see tests/integration/test_graphjin_queries.py).
 
 volumes:
   postgres-data:

@@ -1,0 +1,69 @@
+# dev.yml: GraphJin development configuration for the ITSM foundation.
+# Inherits the governed entity/field/relationship policy from policies.yml.
+#
+# NOTE ON CREDENTIALS: the user/password below are the LOCAL DEMO placeholder
+# values from .env.example (itsm_readonly / change-me-readonly-local-only).
+# They are not real secrets. GraphJin v3 does not expand ${VAR} in config
+# files, and GJ_* env overrides cannot target sources[] array elements, so
+# the read-only role credentials are stated literally here. Any non-local
+# deployment MUST mount a different config with its own credentials.
+inherits: policies.yml
+
+app_name: "ITSM Foundation"
+mode: dev
+
+host_port: 0.0.0.0:8080
+web_ui: false
+log_level: "info"
+log_format: "json"
+
+# Hard cap on rows returned by any query (default and max).
+default_limit: 100
+
+# Block everything by default; only explicitly granted tables are readable.
+default_block: true
+
+auth:
+  type: none
+
+# PostgreSQL source: connects ONLY with the read-only role.
+sources:
+  - name: default
+    kind: database
+    default: true
+    type: postgres
+    host: postgres
+    port: 5432
+    dbname: itsm
+    user: itsm_readonly
+    password: change-me-readonly-local-only
+    schema: itsm
+    # read_only blocks all mutations and DDL at the GraphJin runtime layer
+    # (tamper-protected), in addition to PostgreSQL role privileges.
+    read_only: true
+    ping_timeout: 10s
+    pool_size: 5
+    max_connections: 10
+    access:
+      # Anonymous requests may read only the allowlisted tables.
+      read: public
+      write: blocked
+      delete: blocked
+      public_tables:
+        - merchants
+        - agents
+        - tickets
+
+# MCP server: disabled for the runtime query path in this feature.
+mcp:
+  disable: true
+
+# Artifact store: omitted on purpose. In dev mode GraphJin uses a private
+# managed SQLite store under /config/.graphjin (writable container mount).
+# The PostgreSQL source stays read-only.
+
+# Schema discovery snapshots live under /config/.graphjin/discovery
+# (the .graphjin directory is writable by the container user).
+discovery_cache:
+  enabled: true
+  path: .graphjin/discovery

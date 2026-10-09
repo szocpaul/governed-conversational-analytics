@@ -1,0 +1,75 @@
+# policies.yml: governed access policy for the ITSM foundation.
+# Explicit entities, fields, relationships, and operations.
+# Inherited by dev.yml. Everything not listed here is denied.
+
+# Field and table names that must never be exposed.
+blocklist:
+  - password
+  - secret
+  - token
+  - encrypted
+
+# Explicit entity allowlist with explicit field allowlists.
+tables:
+  - name: merchants
+    schema: itsm
+    table: merchants
+    source: default
+    read_only: true
+    columns:
+      - name: merchant_id
+        primary: true
+      - name: merchant_name
+      - name: sector
+      - name: tier
+      - name: region
+
+  - name: agents
+    schema: itsm
+    table: agents
+    source: default
+    read_only: true
+    columns:
+      - name: agent_id
+        primary: true
+      - name: agent_name
+      - name: tier
+      - name: primary_category
+      - name: shift_region
+      - name: efficiency_multiplier
+
+  - name: tickets
+    schema: itsm
+    table: tickets
+    source: default
+    read_only: true
+    columns:
+      - name: ticket_id
+        primary: true
+      - name: merchant_id
+        related_to: merchants.merchant_id
+      - name: category
+      - name: sub_category
+      - name: priority
+      - name: created_at
+      - name: is_legacy
+      - name: assigned_agent_id
+        related_to: agents.agent_id
+      - name: category_mismatch
+      - name: first_response_at
+      - name: closed_at
+      - name: ttfr_hours
+      - name: resolution_hours
+      - name: response_breached
+      - name: resolution_breached
+      - name: is_reopened
+      - name: is_reopen_child
+      - name: is_incident_ticket
+      - name: csat_score
+
+# Explicit relationships.
+relationships:
+  - from: tickets.merchant_id
+    to: merchants.merchant_id
+  - from: tickets.assigned_agent_id
+    to: agents.agent_id
