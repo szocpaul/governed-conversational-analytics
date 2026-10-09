@@ -1,0 +1,21 @@
+agent_id,agent_name,tier,primary_category,shift_region,efficiency_multiplier
+201,Alex Mercer,L1,API Integrations,Asia-Pacific,1.061
+202,Samira Khan,L2,Account Access,North America,1.355
+203,Marcus Vance,L2,Account Access,Asia-Pacific,0.856
+204,Elena Rostova,L1,Payments & Checkout,North America,1.249
+205,David Chen,L1,API Integrations,Asia-Pacific,0.822
+206,Chloe Bennett,L1,Fulfilment & Logistics,Asia-Pacific,0.898
+207,Tariq Mahmood,L1,Payments & Checkout,North America,0.903
+208,Sophie Dubois,L1,Fulfilment & Logistics,North America,1.197
+209,Liam O'Connor,L1,Fulfilment & Logistics,Asia-Pacific,1.21
+210,Maya Patel,L1,Fulfilment & Logistics,North America,1.157
+211,Julian Ross,L3,API Integrations,North America,0.692
+212,Hannah Abbott,L3,Account Access,Asia-Pacific,1.021
+213,Viktor Novak,L2,Account Access,UK & Europe,0.777
+214,Priya Sharma,L2,API Integrations,Asia-Pacific,0.762
+215,Lucas Meyer,L1,Payments & Checkout,Asia-Pacific,1.154
+216,Aisha Bello,L3,Fulfilment & Logistics,UK & Europe,1.322
+217,Gabriel Silva,L2,Payments & Checkout,North America,1.336
+218,Zoe Kowalski,L1,Notifications,Asia-Pacific,1.085
+219,Yusuf Al-Mansoor,L2,Account Access,Asia-Pacific,0.827
+220,Emma Watson,L2,Notifications,Asia-Pacific,1.199
