@@ -37,8 +37,35 @@ def parse_request_json(raw: str) -> StructuredQueryRequest:
         data = json.loads(candidate)
     except json.JSONDecodeError as exc:
         raise ValueError(f"planner output is not valid JSON: {exc}") from exc
+    data = _normalize_shape(data)
     # Pydantic validation enforces the governed allowlist.
     return StructuredQueryRequest.model_validate(data)
+
+
+def _normalize_shape(data: dict) -> dict:
+    """Adapt common planner output variants to the canonical shape.
+
+    The model sometimes emits an "aggregations" array (with optional "alias")
+    instead of the singular "aggregate" object. Normalize deterministically.
+    """
+    if not isinstance(data, dict):
+        raise ValueError("planner output is not a JSON object")
+    if "aggregate" not in data and isinstance(data.get("aggregations"), list):
+        aggs = data["aggregations"]
+        if aggs and isinstance(aggs[0], dict):
+            first = aggs[0]
+            data["aggregate"] = {
+                "function": first.get("function"),
+                "field": first.get("field"),
+            }
+        data.pop("aggregations", None)
+    # Drop unknown helper keys the model may add (e.g. alias) is handled by
+    # pydantic's default ignore of extra fields only if configured; strip them.
+    allowed_keys = {
+        "entity", "operation", "fields", "filters", "aggregate",
+        "relationships", "order_by", "order_dir", "limit",
+    }
+    return {k: v for k, v in data.items() if k in allowed_keys}
 
 
 class QueryProgram(dspy.Module):

@@ -60,7 +60,17 @@ class PlanQuery(dspy.Signature):
 
     question: str = dspy.InputField(desc="a supported analytical question")
     request_json: str = dspy.OutputField(
-        desc="JSON object matching StructuredQueryRequest; no SQL, no prose")
+        desc=(
+            "a single JSON object matching StructuredQueryRequest exactly; "
+            "no SQL, no prose, no code fences. Shape: {\"entity\": "
+            "\"tickets\", \"operation\": \"aggregate\", \"aggregate\": "
+            "{\"function\": \"count\", \"field\": null}, \"filters\": "
+            "[{\"field\": \"priority\", \"op\": \"eq\", \"value\": "
+            "\"P1\"}], \"limit\": 100}. For a list operation use "
+            "\"operation\": \"list\" with \"fields\": [...] and no "
+            "\"aggregate\" key."
+        )
+    )
 
 
 # ---------------------------------------------------------------------------
