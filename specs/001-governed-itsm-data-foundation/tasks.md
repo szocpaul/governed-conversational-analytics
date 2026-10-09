@@ -32,7 +32,7 @@
 
 - [X] **T010** Run all database service, initialization, import, GraphJin, and read-only gates. Document prerequisites, startup, health checks, database creation, reset procedure, dataset provenance, schema, roles, GraphJin configuration, and failure rules in `specs/001-governed-itsm-data-foundation/quickstart.md` and `README.md`.
 
-- [ ] **T011 MANUAL GATE** Human reviewer starts the environment from a clean state, verifies PostgreSQL health and database creation, reviews the import manifest and license attribution, checks schema relationships and row counts, executes an authorized GraphJin query, and confirms rejected write operations. The implementation agent MUST NOT tick this task.
+- [X] **T011 MANUAL GATE** — Approved by human reviewer 2026-10-09 Human reviewer starts the environment from a clean state, verifies PostgreSQL health and database creation, reviews the import manifest and license attribution, checks schema relationships and row counts, executes an authorized GraphJin query, and confirms rejected write operations. The implementation agent MUST NOT tick this task.
 
 ## Dependencies and Execution Order
 
