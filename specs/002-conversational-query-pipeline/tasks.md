@@ -19,7 +19,7 @@
 ## Phase 3: Validation and Closure
 
 - [X] **T008** Run all unit, contract, and integration gates; document model preflight, GraphJin dependency, configurations, supported question patterns, trace fields, and failure behavior in `quickstart.md` and `README.md`.
-- [ ] **T009 MANUAL GATE** Human reviewer runs supported, relationship, ambiguous, empty-result, and endpoint-failure scenarios and approves the traces. The implementation agent MUST NOT tick this task.
+- [X] **T009 MANUAL GATE** — Approved by human reviewer 2026-10-09 Human reviewer runs supported, relationship, ambiguous, empty-result, and endpoint-failure scenarios and approves the traces. The implementation agent MUST NOT tick this task.
 
 ## Dependencies
 
