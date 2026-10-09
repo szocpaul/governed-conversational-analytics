@@ -3,7 +3,11 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
+
+# Load .env (if present) before any config is read from the environment.
+load_dotenv()
 
 from app.ai.llm import LLMConfig, LLMEndpointError, configure_dspy
 from app.api.routes import router

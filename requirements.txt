@@ -5,3 +5,4 @@ uvicorn[standard]==0.45.0
 pydantic==2.12.5
 httpx==0.28.1
 pytest==9.0.3
+python-dotenv
