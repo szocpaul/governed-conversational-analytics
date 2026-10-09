@@ -4,9 +4,15 @@ Flow: question -> DSPy classify+plan -> deterministic validate -> governed
 GraphJin execute -> normalize evidence -> DSPy grounded answer -> sanitized
 trace + latency. Stable categories for clarification, unsupported, and
 dependency failure. No model/provider fallback; no arbitrary SQL.
+
+Security (spec 003): an overall REQUEST SAFETY TIMEOUT bounds the whole
+request independently of the database-query timeout and the result-size
+cap (FR-004). If any stage exceeds it, the request returns a stable
+dependency_error instead of hanging.
 """
 from __future__ import annotations
 
+import concurrent.futures
 import os
 
 from fastapi import APIRouter
@@ -22,10 +28,20 @@ from app.api.schemas import (
 from app.data.graphjin_client import GraphJinClient, GraphJinError
 from app.data.result_normalizer import normalize_result
 from app.observability.trace import Trace
+from app.security.classifier import classify_question
 from app.security.errors import PipelineError
+from app.security.redaction import redact
 from app.security.validator import validate_request
 
 router = APIRouter()
+
+# Overall request safety timeout (seconds), independent of the
+# database-query timeout and the result-size cap (FR-004).
+REQUEST_SAFETY_TIMEOUT_S = float(
+    os.environ.get("REQUEST_SAFETY_TIMEOUT_S", "120"))
+
+# Bounded executor so a timed-out request does not leak threads.
+_SAFETY_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 
 def _make_query_program() -> QueryProgram:
@@ -55,8 +71,32 @@ def _response(status: str, answer: str, trace: Trace,
 
 @router.post("/query", response_model=QueryResponse)
 def query(req: QuestionRequest) -> QueryResponse:
+    """Entry point with an independent overall request safety timeout."""
+    future = _SAFETY_EXECUTOR.submit(_query_inner, req)
+    try:
+        return future.result(timeout=REQUEST_SAFETY_TIMEOUT_S)
+    except concurrent.futures.TimeoutError:
+        trace = Trace()
+        trace.add("error", "overall request safety timeout exceeded")
+        return _response(
+            "dependency_error",
+            "The request exceeded the overall safety timeout and was "
+            "stopped.",
+            trace,
+        )
+
+
+def _query_inner(req: QuestionRequest) -> QueryResponse:
     trace = Trace()
     trace.add("received", "question accepted")
+
+    # 0. Injection telemetry (NEVER authorization; FR-001). The signal is
+    # recorded in the trace only; deterministic controls below decide access.
+    signal = classify_question(req.question)
+    if signal.flagged:
+        trace.add("injection_signal",
+                  f"telemetry category={signal.category} "
+                  f"patterns={len(signal.matched_patterns)}")
 
     # 1. Classify + plan (DSPy, pinned local model; no fallback).
     try:
@@ -144,4 +184,6 @@ def query(req: QuestionRequest) -> QueryResponse:
         )
 
     trace.add("answered", "grounded answer returned")
-    return _response("answered", answered.answer, trace, evidence)
+    # Defense in depth: redact the final answer text so no canary, secret,
+    # or private endpoint detail can reach the user (FR-006).
+    return _response("answered", redact(answered.answer), trace, evidence)

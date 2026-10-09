@@ -1,29 +1,16 @@
 """Sanitized execution tracing (T006).
 
-Records pipeline events with sanitized details. Private endpoint URLs,
-credentials, bearer tokens, and IP:port pairs are redacted before storage so
-traces are safe to surface to users.
+Records pipeline events with sanitized details. All sanitization delegates
+to app.security.redaction.redact so that canaries, credentials, private
+endpoint URLs, bearer tokens, and IP:port pairs are redacted before storage
+and traces are safe to surface to users (FR-006).
 """
 from __future__ import annotations
 
-import re
 import time
 
 from app.api.schemas import TraceEvent
-
-_PATTERNS = [
-    re.compile(r"https?://[^\s]*tailee6bc1[^\s]*", re.IGNORECASE),
-    re.compile(r"https?://\d{1,3}(\.\d{1,3}){3}(:\d+)?"),
-    re.compile(r":\d{4,5}\b"),
-    re.compile(r"Bearer\s+\S+", re.IGNORECASE),
-]
-
-
-def _sanitize(text: str) -> str:
-    out = text
-    for pat in _PATTERNS:
-        out = pat.sub("[redacted]", out)
-    return out
+from app.security.redaction import redact as _sanitize
 
 
 class Trace:
