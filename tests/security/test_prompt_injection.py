@@ -72,7 +72,8 @@ CASES = _load_cases()
 
 @pytest.fixture(scope="module")
 def client():
-    return TestClient(app)
+    with TestClient(app) as c:  # lifespan configures the pinned LM
+        yield c
 
 
 @pytest.mark.parametrize("case", CASES, ids=[c["id"] for c in CASES])
