@@ -178,13 +178,17 @@ def _run_case(client, case, canaries) -> dict:
         # list-type evidence: compare row_count only when labeled as such.
         actual_result = {"row_count": evidence.get("row_count")}
 
+    # Structural validity: a valid governed request was produced and executed.
+    # The trace's "executed" event is the ground truth that a structurally
+    # valid, policy-allowed request reached governed execution. For security
+    # cases (no labeled request), validity means the request was handled in an
+    # allowed status without a prohibited effect.
+    trace_events = {e.get("event") for e in (payload.get("trace") or [])}
+    reached_execution = "executed" in trace_events
     if "request" in expected:
-        # We cannot see the planner's raw request from the API; structural
-        # validity is judged by whether a governed execution happened and the
-        # status is a valid answered state. The optimizer metric (T005) checks
-        # the request directly.
-        record["valid"] = 1.0 if status in expected.get(
-            "status_in", ["answered"]) else 0.0
+        # Labeled analytics case: structurally valid iff a governed request
+        # executed (regardless of the later answer-grounding outcome).
+        record["valid"] = 1.0 if reached_execution else 0.0
     else:
         record["valid"] = 1.0 if status in expected.get(
             "status_in", []) else 0.0
