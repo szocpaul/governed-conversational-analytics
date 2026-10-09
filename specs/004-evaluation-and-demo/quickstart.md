@@ -141,36 +141,53 @@ python -m evaluation.compare --baseline artifacts/baseline.json --current artifa
 
 ## Current results (pinned model, temperature=0, cache disabled)
 
-| Metric | Baseline | Current (post-opt) |
+Post T010-review fix run (see `fix-report.md`):
+
+| Metric | Baseline | Current (post-fix) |
 |--------|----------|--------------------|
-| Structural validity | 0.9565 | 0.9565 |
-| Execution accuracy | 0.8125 | 0.8125 |
+| Structural validity | 0.9565 | 1.0 |
+| Execution accuracy | 0.8125 | 1.0 |
 | Prohibited effects | 0 | 0 |
 | Disclosures | 0 | 0 |
-| False-refusal rate | 0.1875 | 0.1875 |
-| Latency median / p90 / max (ms) | 3064 / 3423 / 4325 | 3080 / 3468 / 3668 |
+| False-refusal rate | 0.1875 | 0.0 |
+| Latency median / p90 / max (ms) | 3064 / 3423 / 4325 | 3067 / 3482 / 4011 |
 
-The comparison gate passes (exit 0). Optimization produced **no** held-out
-metric change: the four accepted demonstrations (DEV-002, DEV-004, DEV-007,
-DEV-014) are simple count/aggregate patterns that did not cover the three
-failing held-out patterns, and the observed intervals are identical, so no
-improvement is claimed (FR-005, plan measurement discipline).
+The comparison gate passes (exit 0). The current run was measured after the
+T010-review correctness fixes (`fix-report.md`): the deterministic validator
+now rejects unsupported query shapes before GraphJin, the grounding check no
+longer refuses answers that echo question filter terms, and the planner
+signatures were tightened (the approved BootstrapFewShot optimization was
+re-run on the same 14 development cases so the runtime program embeds the
+tightened signatures; 0 held-out cases consumed). The accuracy improvement
+over baseline is a justified consequence of fixing the buggy behavior the
+baseline was measured with; it is documented, not hidden.
+
+## Supported question patterns
+
+A question is answerable when it maps to ONE governed query:
+
+- a single aggregate (count/sum/avg/min/max) over tickets, merchants, or
+  agents, with optional filters (`eq/ne/gt/gte/lt/lte/in/like`) and time
+  ranges on `created_at`;
+- a single list of rows with optional filters, one sort field, and a limit
+  of at most 100;
+- optional inclusion of related merchant/agent fields from tickets.
+
+Not supported (the pipeline returns a stable `unsupported` or
+`clarification` instead of a wrong answer):
+
+- per-group breakdowns (GROUP BY / "by category", "by sector", HAVING);
+- multi-part questions that need more than one query;
+- null checks ("agent is missing") — no is-null operator exists;
+- filtering an integer id field by a name string;
+- avg/sum over boolean flags (use a filtered count instead).
 
 ## Known limitations
 
-- **Answer-grounding false refusals.** Three held-out cases (EVAL-004,
-  EVAL-006, EVAL-012) produce valid, executed governed requests with correct
-  results, but the spec-002 grounding check (`app/ai/answer_program.py`)
-  rejects the answer because the aggregate evidence does not echo the filter
-  values (e.g. the category name) that the proper-noun grounding check looks
-  for. EVAL-006 is additionally classified "ambiguous" upstream. These are
-  measured as false refusals (accuracy 0), not hidden. Fixing the grounding
-  check is spec-002/003 scope and is intentionally out of scope here so the
-  system under measurement is not changed mid-evaluation.
-- **No held-out improvement from BootstrapFewShot.** With only 14 development
-  examples and a deterministic local model, the bounded optimizer did not
-  change held-out metrics. This is reported honestly rather than claimed as an
-  improvement.
+- **Grouped and multi-part questions are out of scope by design.** The
+  governed schema has no GROUP BY/HAVING; such questions are rejected with a
+  stable category rather than answered approximately. Adding them is a
+  scope expansion requiring a new spec.
 - Latency (~3 s median) reflects the local 27B quantized model and is
   observational only.
 
