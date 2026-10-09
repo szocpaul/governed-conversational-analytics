@@ -77,7 +77,14 @@ curl -s -X POST http://127.0.0.1:8001/query   -H 'Content-Type: application/json
 ## Supported question patterns
 
 - **Aggregation**: "How many tickets are P1?", "What is the average
-  resolution time?", "What is the maximum time to first response?"
+  resolution time of tickets?", "What is the average resolution time for
+  P2 tickets?", "What is the maximum time to first response?"
+
+  Note: name the entity explicitly ("...of tickets", "...for P2 tickets").
+  Questions with an implicit entity (e.g. bare "What is the average
+  resolution time?") may be classified as ambiguous and return a
+  `clarification` response with no query executed — this is intentional
+  (FR-005). Rephrase with the entity or a filter to get an answer.
 - **Filtered lists**: "List 5 high-priority tickets.", "Show tickets in the
   Account Access category."
 - **Relationships**: "Show tickets with their merchant names.", "Which agent
