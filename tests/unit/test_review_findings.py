@@ -227,3 +227,20 @@ def test_f3_correct_answer_grounded():
     answer = "Samira Khan has the highest efficiency multiplier (1.355)."
     assert is_grounded(answer, ev, question=(
         "Which agent has the highest efficiency multiplier?")) is True
+
+
+def test_no_data_claim_with_nonempty_evidence_ungrounded():
+    """F6 follow-up: claiming 'no matching data' when evidence contains a
+    real aggregate value (count=1037) contradicts the evidence -> ungrounded."""
+    from app.ai.answer_program import is_grounded
+    from app.api.schemas import Evidence
+    ev = Evidence(rows=[], aggregate={"count": 1037}, row_count=0)
+    assert is_grounded("No matching data was found.", ev) is False
+
+
+def test_no_data_claim_with_null_aggregate_grounded():
+    """A no-data claim is grounded when every aggregate value is null."""
+    from app.ai.answer_program import is_grounded
+    from app.api.schemas import Evidence
+    ev = Evidence(rows=[], aggregate={"avg_resolution_hours": None}, row_count=0)
+    assert is_grounded("No matching data was found.", ev) is True

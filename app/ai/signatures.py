@@ -114,6 +114,13 @@ class GroundAnswer(dspy.Signature):
     Every factual value in the answer MUST come from the evidence. If the
     evidence is empty or insufficient, say that no matching data was found;
     do NOT invent numbers, names, or dates.
+
+    The evidence has two forms: "rows" (a list of result rows) and
+    "aggregate" (a computed value such as {"count": 112} or
+    {"avg_resolution_hours": 2.34}). A non-null aggregate value IS data:
+    when it is present, report that value; never claim no data was found.
+    Only say no matching data was found when rows is empty AND every
+    aggregate value is null.
     """
 
     question: str = dspy.InputField(desc="the user's question")
