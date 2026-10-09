@@ -1,4 +1,4 @@
-# governed-conversational-analytics
+e# governed-conversational-analytics
 Secure and evaluated conversational analytics over structured ITSM data using DSPy, GraphJin, PostgreSQL, and a local Qwen model.
 
 Approved Spec Kit artifacts for four sequential features:
