@@ -3,3 +3,6 @@
 
 # Local secrets
 .env
+
+# GraphJin container-managed state (artifact SQLite, discovery snapshots)
+graphjin/config/.graphjin/
