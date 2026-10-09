@@ -45,7 +45,22 @@ _SAFETY_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 
 def _make_query_program() -> QueryProgram:
-    return QueryProgram()
+    """Return the query program, loading the optimized program when present.
+
+    The optimized program (app/ai/optimized_program.json) is produced by the
+    approved BootstrapFewShot optimization on development cases only (spec 004,
+    T006). When absent, the base program is used. Loading is best-effort: a
+    malformed artifact falls back to the base program rather than failing.
+    """
+    program = QueryProgram()
+    opt_path = os.path.join(
+        os.path.dirname(__file__), "..", "ai", "optimized_program.json")
+    if os.path.exists(opt_path):
+        try:
+            program.load(opt_path)
+        except Exception:  # noqa: BLE001 - fall back to base program
+            pass
+    return program
 
 
 def _make_answer_program() -> AnswerProgram:

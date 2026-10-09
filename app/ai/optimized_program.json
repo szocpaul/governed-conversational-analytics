@@ -1,0 +1,213 @@
+{
+  "classify": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "case_id": "DEV-014",
+        "question": "How many tickets breached their first response SLA?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "count",
+            "field": null
+          },
+          "filters": [
+            {
+              "field": "response_breached",
+              "op": "eq",
+              "value": true
+            }
+          ],
+          "limit": 100
+        },
+        "expected_result": {
+          "count": 345
+        }
+      },
+      {
+        "case_id": "DEV-004",
+        "question": "What is the average CSAT score across all tickets?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "avg",
+            "field": "csat_score"
+          },
+          "filters": [],
+          "limit": 100
+        },
+        "expected_result": {
+          "avg_csat_score": 0.75
+        }
+      },
+      {
+        "case_id": "DEV-007",
+        "question": "How many agents do we have?",
+        "expected_request": {
+          "entity": "agents",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "count",
+            "field": null
+          },
+          "filters": [],
+          "limit": 100
+        },
+        "expected_result": {
+          "count": 20
+        }
+      },
+      {
+        "case_id": "DEV-002",
+        "question": "How many P1 tickets are there?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "count",
+            "field": null
+          },
+          "filters": [
+            {
+              "field": "priority",
+              "op": "eq",
+              "value": "P1"
+            }
+          ],
+          "limit": 100
+        },
+        "expected_result": {
+          "count": 112
+        }
+      }
+    ],
+    "signature": {
+      "instructions": "Classify a natural-language ITSM analytics question.\n\nDecide whether the question is a supported analytical question over the\ngoverned ITSM dataset (tickets, merchants, agents), is materially\nambiguous and needs clarification, or is unsupported/out of scope.",
+      "fields": [
+        {
+          "prefix": "Question:",
+          "description": "the user's natural-language question"
+        },
+        {
+          "prefix": "Category:",
+          "description": "one of: supported, ambiguous, unsupported"
+        },
+        {
+          "prefix": "Rationale:",
+          "description": "one short sentence explaining the classification"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "plan": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "case_id": "DEV-007",
+        "question": "How many agents do we have?",
+        "expected_request": {
+          "entity": "agents",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "count",
+            "field": null
+          },
+          "filters": [],
+          "limit": 100
+        },
+        "expected_result": {
+          "count": 20
+        }
+      },
+      {
+        "case_id": "DEV-002",
+        "question": "How many P1 tickets are there?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "count",
+            "field": null
+          },
+          "filters": [
+            {
+              "field": "priority",
+              "op": "eq",
+              "value": "P1"
+            }
+          ],
+          "limit": 100
+        },
+        "expected_result": {
+          "count": 112
+        }
+      },
+      {
+        "case_id": "DEV-004",
+        "question": "What is the average CSAT score across all tickets?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "avg",
+            "field": "csat_score"
+          },
+          "filters": [],
+          "limit": 100
+        },
+        "expected_result": {
+          "avg_csat_score": 0.75
+        }
+      },
+      {
+        "case_id": "DEV-014",
+        "question": "How many tickets breached their first response SLA?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "count",
+            "field": null
+          },
+          "filters": [
+            {
+              "field": "response_breached",
+              "op": "eq",
+              "value": true
+            }
+          ],
+          "limit": 100
+        },
+        "expected_result": {
+          "count": 345
+        }
+      }
+    ],
+    "signature": {
+      "instructions": "Plan a typed, governed GraphQL query request for a supported question.\n\nOutput a JSON object for a StructuredQueryRequest over the governed ITSM\nschema. Entities and fields are strictly limited to the allowlist:\n\n- tickets: ticket_id, merchant_id, category, sub_category, priority,\n  created_at, is_legacy, assigned_agent_id, category_mismatch,\n  first_response_at, closed_at, ttfr_hours, resolution_hours,\n  response_breached, resolution_breached, is_reopened, is_reopen_child,\n  is_incident_ticket, csat_score\n- merchants: merchant_id, merchant_name, sector, tier, region\n- agents: agent_id, agent_name, tier, primary_category, shift_region,\n  efficiency_multiplier\n\nRules:\n- operation is \"list\" (return rows) or \"aggregate\" (count/sum/avg/min/max).\n- filters use ops: eq, ne, gt, gte, lt, lte, in, like.\n- Use created_at with gte/lt for time ranges (ISO dates).\n- relationships may include merchants and/or agents from tickets.\n- limit must be between 1 and 100.\n- NEVER output SQL. Output ONLY the JSON request object.",
+      "fields": [
+        {
+          "prefix": "Question:",
+          "description": "a supported analytical question"
+        },
+        {
+          "prefix": "Request Json:",
+          "description": "a single JSON object matching StructuredQueryRequest exactly; no SQL, no prose, no code fences. Shape: {\"entity\": \"tickets\", \"operation\": \"aggregate\", \"aggregate\": {\"function\": \"count\", \"field\": null}, \"filters\": [{\"field\": \"priority\", \"op\": \"eq\", \"value\": \"P1\"}], \"limit\": 100}. For a list operation use \"operation\": \"list\" with \"fields\": [...] and no \"aggregate\" key."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "3.2.1",
+      "cloudpickle": "3.1"
+    }
+  }
+}

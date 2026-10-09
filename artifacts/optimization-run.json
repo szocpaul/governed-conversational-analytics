@@ -1,0 +1,42 @@
+{
+  "optimizer": "dspy.BootstrapFewShot",
+  "config": {
+    "metric_threshold": 1.0,
+    "max_bootstrapped_demos": 4,
+    "max_labeled_demos": 4,
+    "max_rounds": 1,
+    "max_errors": 3
+  },
+  "input_case_ids": [
+    "DEV-001",
+    "DEV-002",
+    "DEV-003",
+    "DEV-004",
+    "DEV-005",
+    "DEV-006",
+    "DEV-007",
+    "DEV-008",
+    "DEV-009",
+    "DEV-010",
+    "DEV-011",
+    "DEV-012",
+    "DEV-013",
+    "DEV-014"
+  ],
+  "trainset_size": 14,
+  "held_out_ids_consumed": 0,
+  "errors": [],
+  "accepted_demo_ids": [
+    "DEV-002",
+    "DEV-004",
+    "DEV-007",
+    "DEV-014"
+  ],
+  "output_program_sha256": "91bed3b955dd35c02211261a48761b5661b05f680011f74f5b4366b343623f10",
+  "versions": {
+    "dspy": "3.2.1",
+    "model_id": "models\\Qwen3.8-27B-UD-Q4_K_M.gguf",
+    "temperature": 0.0,
+    "cache": false
+  }
+}
