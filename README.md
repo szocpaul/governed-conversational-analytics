@@ -20,6 +20,16 @@ dataset — never through arbitrary SQL or unrestricted credentials.
    isolated to development cases, and a minimal FastAPI-served demo UI showing
    answer/refusal, sanitized trace, and observational latency. See its
    [quickstart](specs/004-evaluation-and-demo/quickstart.md).
+5. **[005-analytics-surface-v2](specs/005-analytics-surface-v2/)** — extends
+   the governed query surface with grouped aggregations (GROUP BY via
+   GraphJin `distinct` + aggregate columns), missing-value filtering
+   (`is_null`/`is_not_null`; "open" = `closed_at is null`), and
+   ratio/percentage metrics (a dedicated `ratio` aggregate over boolean
+   flags, rendered as a GraphJin expression aggregate). Post-aggregation
+   group filtering (`having`) is a deterministic application-layer filter
+   over executed groups (GraphJin v3 has no native HAVING). Every new shape
+   is allowlisted by the same deterministic validator; the surface stays
+   read-only. See its [quickstart](specs/005-analytics-surface-v2/quickstart.md).
 
 ## Quick start (feature 001)
 
@@ -141,18 +151,21 @@ python -m app.ai.optimization
 uvicorn app.main:app --host 127.0.0.1 --port 8001   # http://127.0.0.1:8001/
 ```
 
-- Datasets: `evaluation/dev_cases.json` (14 dev) and `evaluation/cases.json`
-  (23 held-out, 7 security). Held-out IDs never enter optimization (SC-007).
+- Datasets: `evaluation/dev_cases.json` (20 dev, v2) and
+  `evaluation/cases.json` (33 held-out, 11 security, v2). Held-out IDs never
+  enter optimization (SC-007). Version 2 adds grouped, having, is-null, and
+  ratio cases plus security cases abusing the new operators (feature 005).
 - Optimizer: `dspy.BootstrapFewShot` only (metric_threshold=1.0, 4 bootstrapped
   + 4 labeled demos, 1 round, 3 max errors). No GEPA/MIPROv2/SIMBA/fine-tuning.
-- Current held-out results (after the T010-review correctness fixes):
+- Current held-out results (feature 005, eval-set v2, optimized program):
   structural validity 1.0, execution accuracy 1.0, zero prohibited effects,
-  zero disclosures, zero false refusals. Comparison gate passes (exit 0).
-  Latency median ~3.1 s, p90 ~3.5 s (observational only).
-- The pre-fix baseline (validity 0.9565, accuracy 0.8125) is preserved in
-  `artifacts/baseline.json`; the improvement over it is a documented,
-  justified fix of the buggy behavior the baseline measured (see
-  `specs/004-evaluation-and-demo/fix-report.md`).
+  zero disclosures, zero false refusals across 33 cases. Comparison gate
+  passes (exit 0). Latency median ~2.9 s, p90 ~3.4 s (observational only).
+- The feature-005 pre-optimization baseline (validity 1.0, accuracy 1.0,
+  zero-variance noise over 3×8-case samples) is `artifacts/baseline.json`;
+  the pre-005 baseline is preserved as
+  `artifacts/baseline-pre-005-2026-10-10.json`, and the spec-004 pre-fix
+  baseline is documented in `specs/004-evaluation-and-demo/fix-report.md`.
 
 ## Repository layout
 
@@ -174,5 +187,26 @@ artifacts/baseline.json     # pre-optimization held-out baseline + noise
 artifacts/current.json      # post-optimization held-out evaluation
 artifacts/optimization-run.json  # optimizer config, IDs, hashes, versions
 specs/                      # approved Spec Kit artifacts per feature
-  005-analytics-surface-v2-sketch.md  # future work sketch (GROUP BY, is-null, ratio)
+  005-analytics-surface-v2/  # grouped aggregations, is-null filtering, ratio metrics
 ```
+
+## Supported question patterns (feature 005)
+
+The governed surface answers these patterns — every answer grounded in an
+executed read-only result:
+
+- **Counts and aggregates** with filters and ordering: "How many P1 tickets
+  are there?", "What is the average resolution time for P2 tickets?"
+- **Grouped breakdowns**: "Which category has the most tickets?" (Payments &
+  Checkout, 483), "How many P1 tickets does each category have?" — one row
+  per group, optional `having` group filter ("merchants with more than 25
+  tickets"), governed limit applies to groups (`groups_truncated` flag).
+- **Missing-value filtering**: "How many tickets have no assigned agent?"
+  (250), "List the 5 oldest open tickets" (open = `closed_at` is null).
+- **Ratio/percentage metrics**: "What percentage of tickets breached their
+  resolution SLA?" (50.4% = 1037/2057) — one executed ratio aggregate; a
+  zero denominator yields a stable clarification, never a fabricated number.
+
+Still out of scope: multi-part questions, joins/subqueries/unions, arbitrary
+SQL, and anything outside the governed allowlist — all rejected with a
+stable category and zero database effect.

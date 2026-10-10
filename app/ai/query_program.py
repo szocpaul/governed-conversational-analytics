@@ -22,9 +22,10 @@ _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
 class UnsupportedShapeError(ValueError):
     """Planner emitted a query shape the governed pipeline does not support.
 
-    Raised for GROUP BY/HAVING/joins and other unsupported keys, and for
-    order_by shapes that cannot be normalized to a single field. Mapped to
-    the stable "unsupported" category; never reaches GraphJin.
+    Raised for joins, subqueries, union, distinct-as-key, and other
+    unsupported keys, and for order_by shapes that cannot be normalized to
+    a single field. Mapped to the stable "unsupported" category; never
+    reaches GraphJin.
     """
 
 
@@ -56,14 +57,16 @@ def parse_request_json(raw: str) -> StructuredQueryRequest:
 # Keys that indicate a query shape the governed pipeline does NOT support.
 # They must never be silently dropped: a request whose semantics depend on
 # them would otherwise be rewritten into a different (wrong) query (F2/F8).
+# group_by/having became supported governed shapes in spec 005; the aliases
+# "group"/"groupby" and bare "distinct" remain unsupported.
 _UNSUPPORTED_KEYS = {
-    "group_by", "groupby", "group", "having", "distinct", "join", "joins",
+    "groupby", "group", "distinct", "join", "joins",
     "subquery", "union", "order_by_fields",
 }
 
 _ALLOWED_KEYS = {
     "entity", "operation", "fields", "filters", "aggregate",
-    "relationships", "order_by", "order_dir", "limit",
+    "relationships", "group_by", "having", "order_by", "order_dir", "limit",
 }
 
 
@@ -74,8 +77,9 @@ def _normalize_shape(data: dict) -> dict:
     instead of the singular "aggregate" object, and sometimes emits order_by
     as a list of {"field", "direction"} objects (F7). Normalize those
     deterministically. Any key that expresses an unsupported query shape
-    (GROUP BY, HAVING, joins, ...) raises ValueError so the request is
-    rejected as unsupported BEFORE any GraphJin call, never silently dropped.
+    (joins, subqueries, union, distinct-as-key, ...) raises ValueError so
+    the request is rejected as unsupported BEFORE any GraphJin call, never
+    silently dropped.
     """
     if not isinstance(data, dict):
         raise ValueError("planner output is not a JSON object")
@@ -144,7 +148,7 @@ class QueryProgram(dspy.Module):
         try:
             request = parse_request_json(planned.request_json)
         except UnsupportedShapeError as exc:
-            # Unsupported query shape (GROUP BY, HAVING, multi-field order):
+            # Unsupported query shape (joins, subqueries, multi-field order):
             # stable "unsupported" category, zero GraphJin calls (F1/F2/F8).
             raise UnsupportedQuestionError(str(exc)) from exc
         except PydanticValidationError as exc:

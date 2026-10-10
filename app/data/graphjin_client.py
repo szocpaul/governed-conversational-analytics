@@ -34,8 +34,40 @@ def _build_where(req: StructuredQueryRequest) -> str:
         return ""
     parts = []
     for flt in req.filters:
-        parts.append(f"{flt.field}: {{{flt.op}: {_gql_literal(flt.value)}}}")
+        if flt.op in ("is_null", "is_not_null"):
+            # GraphJin v3 null filtering (research.md Decision 2).
+            val = "true" if flt.op == "is_null" else "false"
+            parts.append(f"{flt.field}: {{is_null: {val}}}")
+        else:
+            parts.append(
+                f"{flt.field}: {{{flt.op}: {_gql_literal(flt.value)}}}")
     return "where: {" + ", ".join(parts) + "}"
+
+
+# Primary-key column per entity; GraphJin names grouped count columns
+# count_<pk> (verified live, research.md Decision 1).
+_PK = {"tickets": "ticket_id", "merchants": "merchant_id",
+       "agents": "agent_id"}
+
+
+def _agg_column(req: StructuredQueryRequest) -> str:
+    """Return the GraphJin aggregate column name for a grouped request."""
+    fn = req.aggregate.function
+    if fn == "count":
+        return f"count_{_PK[req.entity]}"
+    if fn == "ratio":
+        # Aliased expression aggregate (research.md Decision 3).
+        return f"ratio_{req.aggregate.field}"
+    return f"{fn}_{req.aggregate.field}"
+
+
+def _ratio_expr(field: str) -> str:
+    """Render the verified avg(case) expression aggregate for a ratio."""
+    return (
+        "avg(expr: {case: {arms: [{when: {"
+        f"{field}: {{eq: true}}"
+        "}, then: 1.0}], else: 0.0}})"
+    )
 
 
 def build_graphql(req: StructuredQueryRequest) -> str:
@@ -47,11 +79,48 @@ def build_graphql(req: StructuredQueryRequest) -> str:
 
     if req.operation == "aggregate":
         fn = req.aggregate.function
+
+        # Grouped aggregation (spec 005): GraphJin grouped-summary form via
+        # distinct + aggregate columns (research.md Decision 1). HAVING is
+        # NOT rendered here — GraphJin v3 has no native HAVING; the
+        # post-aggregation filter is applied client-side (Decision 4).
+        if req.group_by:
+            distinct = "distinct: [" + ", ".join(req.group_by) + "]"
+            args.append(distinct)
+            if req.order_by:
+                order_col = req.order_by
+                if order_col not in req.group_by:
+                    # "count" / "<fn>_<field>" map to the aggregate column.
+                    order_col = _agg_column(req)
+                args.append(
+                    f"order_by: {{{order_col}: {req.order_dir}}}")
+            args.append(f"limit: {req.limit}")
+            if fn == "ratio":
+                agg_sel = f"{_agg_column(req)}: {_ratio_expr(req.aggregate.field)}"
+            elif fn == "count":
+                agg_sel = _agg_column(req)
+            else:
+                agg_sel = f"{fn}_{req.aggregate.field}"
+            arg_str = f"({', '.join(args)})" if args else ""
+            return (
+                f"{{ {req.entity}{arg_str} "
+                f"{{ {' '.join(req.group_by)} {agg_sel} }} }}"
+            )
+
         if fn == "count":
             agg_body = "count"
+        elif fn == "ratio":
+            # Global ratio: aliased expression aggregate on the plain
+            # entity field set (verified live, research.md Decision 3).
+            agg_body = None
         else:
             agg_body = f"{fn} {{ {req.aggregate.field} }}"
         arg_str = f"({', '.join(args)})" if args else ""
+        if fn == "ratio":
+            return (
+                f"{{ {req.entity}{arg_str} "
+                f"{{ {_agg_column(req)}: {_ratio_expr(req.aggregate.field)} }} }}"
+            )
         return (
             f"{{ {req.entity}_aggregate{arg_str} "
             f"{{ aggregate {{ {agg_body} }} }} }}"

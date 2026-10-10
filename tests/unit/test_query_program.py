@@ -142,3 +142,104 @@ def test_malformed_plan_raises(monkeypatch):
     )
     with pytest.raises(ValueError):
         prog(question="How many tickets?")
+
+
+# ---------------------------------------------------------------------------
+# v2 shape normalization (spec 005, T004)
+# ---------------------------------------------------------------------------
+
+from app.ai.query_program import UnsupportedShapeError
+
+
+def test_group_by_key_accepted_and_normalized():
+    raw = json.dumps({
+        "entity": "tickets", "operation": "aggregate",
+        "aggregate": {"function": "count", "field": None},
+        "group_by": ["category"], "order_by": "count", "order_dir": "desc",
+    })
+    req = parse_request_json(raw)
+    assert req.group_by == ["category"]
+    assert req.order_by == "count"
+
+
+def test_having_key_accepted_and_normalized():
+    raw = json.dumps({
+        "entity": "tickets", "operation": "aggregate",
+        "aggregate": {"function": "count", "field": None},
+        "group_by": ["merchant_id"],
+        "having": {"function": "count", "field": None, "op": "gt",
+                   "value": 50},
+    })
+    req = parse_request_json(raw)
+    assert req.having is not None
+    assert req.having.value == 50
+
+
+def test_is_null_filter_accepted():
+    raw = json.dumps({
+        "entity": "tickets", "operation": "aggregate",
+        "aggregate": {"function": "count", "field": None},
+        "filters": [{"field": "assigned_agent_id", "op": "is_null",
+                     "value": None}],
+    })
+    req = parse_request_json(raw)
+    assert req.filters[0].op == "is_null"
+
+
+def test_ratio_aggregate_accepted():
+    raw = json.dumps({
+        "entity": "tickets", "operation": "aggregate",
+        "aggregate": {"function": "ratio", "field": "resolution_breached"},
+    })
+    req = parse_request_json(raw)
+    assert req.aggregate.function == "ratio"
+
+
+def test_joins_still_rejected():
+    raw = json.dumps({
+        "entity": "tickets", "operation": "list", "fields": ["ticket_id"],
+        "joins": ["merchants"],
+    })
+    with pytest.raises(UnsupportedShapeError):
+        parse_request_json(raw)
+
+
+def test_subquery_still_rejected():
+    raw = json.dumps({
+        "entity": "tickets", "operation": "list", "fields": ["ticket_id"],
+        "subquery": {"entity": "agents"},
+    })
+    with pytest.raises(UnsupportedShapeError):
+        parse_request_json(raw)
+
+
+def test_union_still_rejected():
+    raw = json.dumps({
+        "entity": "tickets", "operation": "list", "fields": ["ticket_id"],
+        "union": [{"entity": "agents"}],
+    })
+    with pytest.raises(UnsupportedShapeError):
+        parse_request_json(raw)
+
+
+def test_distinct_as_key_still_rejected():
+    # distinct as a top-level planner key is not the governed grouped shape;
+    # grouping must go through group_by.
+    raw = json.dumps({
+        "entity": "tickets", "operation": "list", "fields": ["category"],
+        "distinct": True,
+    })
+    with pytest.raises(UnsupportedShapeError):
+        parse_request_json(raw)
+
+
+def test_group_alias_keys_still_rejected():
+    # "group"/"groupby" aliases are not the canonical group_by shape.
+    for alias in ("group", "groupby"):
+        raw = json.dumps({
+            "entity": "tickets", "operation": "aggregate",
+            "aggregate": {"function": "count", "field": None},
+            alias: ["category"],
+        })
+        with pytest.raises(UnsupportedShapeError):
+            parse_request_json(raw)

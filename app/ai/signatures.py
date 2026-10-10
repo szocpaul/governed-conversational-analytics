@@ -21,9 +21,11 @@ class ClassifyQuestion(dspy.Signature):
     governed ITSM dataset (tickets, merchants, agents), is materially
     ambiguous and needs clarification, or is unsupported/out of scope.
 
-    A question is SUPPORTED only when it can be answered by ONE simple query:
-    a single list of rows, or a single aggregate (count/sum/avg/min/max)
-    with optional filters and ordering.
+    A question is SUPPORTED only when it can be answered by ONE governed
+    query: a single list of rows, a single aggregate (count/sum/avg/min/max/
+    ratio) with optional filters and ordering, or a grouped breakdown
+    (group_by over 1-3 fields with one aggregate, optionally filtered
+    per-group with having).
 
     Classify as AMBIGUOUS when the question asks for several things at once
     (multi-part, e.g. "which agent is best AND how many tickets"), because a
@@ -31,9 +33,8 @@ class ClassifyQuestion(dspy.Signature):
     silently dropped.
 
     Classify as UNSUPPORTED when the question needs query shapes the schema
-    cannot express: per-group breakdowns (GROUP BY), "by category/sector/
-    region" distributions, comparisons across groups, or data outside the
-    governed dataset.
+    cannot express: joins across entities in one result, subqueries, unions,
+    or data outside the governed dataset.
     """
 
     question: str = dspy.InputField(desc="the user's natural-language question")
@@ -64,8 +65,13 @@ class PlanQuery(dspy.Signature):
       efficiency_multiplier
 
     Rules:
-    - operation is "list" (return rows) or "aggregate" (count/sum/avg/min/max).
-    - filters use ops: eq, ne, gt, gte, lt, lte, in, like.
+    - operation is "list" (return rows) or "aggregate" (count/sum/avg/min/max/
+      ratio).
+    - filters use ops: eq, ne, gt, gte, lt, lte, in, like, is_null,
+      is_not_null. The is_null/is_not_null ops take NO value (null).
+      Missing-value filtering: "open" tickets are closed_at is_null;
+      "closed" tickets are closed_at is_not_null; "no assigned agent" is
+      assigned_agent_id is_null.
     - Use created_at with gte/lt for time ranges (ISO dates).
     - relationships may include merchants and/or agents from tickets.
     - limit must be between 1 and 100.
@@ -74,17 +80,34 @@ class PlanQuery(dspy.Signature):
       order_by on the relevant field with the matching direction and a small
       limit, so the returned row is the actual extremum.
     - avg and sum are ONLY valid on numeric fields (ttfr_hours,
-      resolution_hours, csat_score, efficiency_multiplier). For ratios over
-      boolean flags (e.g. SLA breach percentage), use count with a filter on
-      the flag instead of avg/sum on the boolean.
+      resolution_hours, csat_score, efficiency_multiplier).
+    - For ratio/percentage questions over a boolean flag (e.g. "what
+      percentage of tickets breached their resolution SLA"), use the
+      "ratio" aggregate with the flag as field: {"function": "ratio",
+      "field": "resolution_breached"}. ratio is ONLY valid on boolean
+      fields (is_legacy, category_mismatch, response_breached,
+      resolution_breached, is_reopened, is_reopen_child,
+      is_incident_ticket). The result is a value in [0, 1]; a null result
+      means the base set is empty. ratio also works with group_by for a
+      per-group percentage.
     - Filter values must match the column type: integer ids take integers,
       boolean flags take true/false, text fields take strings. Never filter
-      an id field with a name; never use null as a filter value (no is-null
-      operator exists).
-    - The schema CANNOT group results: NEVER emit group_by, having, distinct,
-      joins, or subqueries. If the question needs a per-group breakdown,
-      plan only the single aggregate or list that answers it without
-      grouping.
+      an id field with a name. Only the is_null/is_not_null ops carry a null
+      value; every other op requires a typed non-null value.
+    - Grouped breakdowns ARE supported: for "by category/per sector/which
+      group has the most" questions, use operation "aggregate" with
+      "group_by": [1-3 allowlisted fields] and one aggregate. On grouped
+      requests order_by may name a grouping field or the string "count"
+      (the aggregate column) — use order_by "count", order_dir "desc" for
+      "which group has the most" questions.
+    - An optional "having" object filters groups AFTER aggregation:
+      {"function": "count"|"sum"|"avg"|"min"|"max", "field": null or an
+      allowlisted numeric field, "op": "eq"|"ne"|"gt"|"gte"|"lt"|"lte",
+      "value": <number>}. having is ONLY valid with a non-empty group_by
+      (e.g. "merchants with more than 50 tickets" -> group_by
+      ["merchant_id"], having {"function": "count", "field": null,
+      "op": "gt", "value": 50}).
+    - NEVER emit joins, subqueries, union, or a bare "distinct" key.
     - NEVER output SQL. Output ONLY the JSON request object.
     """
 
@@ -121,6 +144,18 @@ class GroundAnswer(dspy.Signature):
     when it is present, report that value; never claim no data was found.
     Only say no matching data was found when rows is empty AND every
     aggregate value is null.
+
+    Grouped evidence: each row in "rows" is one group with its grouping
+    field values and aggregate column (e.g. {"category": "Payments &
+    Checkout", "count_ticket_id": 483}). Answer per-group questions from
+    these rows only; when "groups_truncated" is true, say the breakdown may
+    be incomplete.
+
+    Ratio evidence: an aggregate like {"ratio_resolution_breached":
+    0.5041} is a fraction in [0, 1]; format it as a percentage (50.4%).
+    NEVER invent numerator/denominator counts for a ratio — report only
+    the percentage the evidence carries. A null ratio means the base set
+    is empty; say the ratio is undefined instead of stating a number.
     """
 
     question: str = dspy.InputField(desc="the user's question")

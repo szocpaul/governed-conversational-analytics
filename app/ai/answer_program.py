@@ -73,6 +73,32 @@ def is_grounded(answer: str, evidence: Evidence,
     # not mistaken for factual data values.
     scrubbed = re.sub(r"(?m)^\s*\d+[.)]\s+", " ", answer)
     scrubbed = re.sub(r"\s\d+[.)]\s+", " ", scrubbed)
+    # Normalize thousands separators: "1,807" is the same fact as 1807.
+    scrubbed = re.sub(r"(?<=\d),(?=\d{3}\b)", "", scrubbed)
+
+    # Ratio fractions in evidence ground their percentage form in the
+    # answer (spec 005): 0.5041... grounds "50.4" when the answer formats
+    # it as a percentage.
+    ratio_percents: set[float] = set()
+    null_ratio = False
+    for k, v in (evidence.aggregate or {}).items():
+        if isinstance(k, str) and k.startswith("ratio_"):
+            if v is None:
+                null_ratio = True
+            elif isinstance(v, (int, float)) and not isinstance(v, bool):
+                ratio_percents.add(round(float(v) * 100, 1))
+                ratio_percents.add(round(float(v) * 100, 2))
+    for row in evidence.rows:
+        for k, v in row.items():
+            if isinstance(k, str) and k.startswith("ratio_") and \
+                    isinstance(v, (int, float)) and not isinstance(v, bool):
+                ratio_percents.add(round(float(v) * 100, 1))
+                ratio_percents.add(round(float(v) * 100, 2))
+
+    # A null ratio (empty base set) grounds no percentage claim at all:
+    # any "%" figure in the answer would be fabricated (FR-004).
+    if null_ratio and re.search(r"\d+(?:\.\d+)?\s*%", answer):
+        return False
 
     # Check numbers.
     for num in _NUM_RE.findall(scrubbed):
@@ -88,6 +114,8 @@ def is_grounded(answer: str, evidence: Evidence,
                     break
             except ValueError:
                 continue
+        if not matched and val in ratio_percents:
+            matched = True
         if not matched:
             # Numbers that appear in the question (e.g. a year or threshold
             # restated by the answer) are query parameters, not derived facts.

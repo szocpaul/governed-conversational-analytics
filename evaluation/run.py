@@ -173,7 +173,12 @@ def _run_case(client, case, canaries) -> dict:
     # cases that produced a governed request and result.
     evidence = payload.get("evidence") or {}
     actual_result = evidence.get("aggregate") or None
-    if actual_result is None and evidence.get("rows") is not None and \
+    if actual_result is None and "groups" in (expected.get("result") or {}):
+        # Grouped expectation (spec 005): compare the executed group rows.
+        actual_result = {"groups": evidence.get("rows") or []}
+        if "row_count" in (expected.get("result") or {}):
+            actual_result["row_count"] = evidence.get("row_count")
+    elif actual_result is None and evidence.get("rows") is not None and \
             evidence.get("row_count") is not None and not evidence.get("aggregate"):
         # list-type evidence: compare row_count only when labeled as such.
         actual_result = {"row_count": evidence.get("row_count")}

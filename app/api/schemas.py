@@ -77,11 +77,19 @@ _ORDERABLE_TYPES = {"integer", "numeric", "timestamp"}
 
 MAX_LIMIT = 100  # matches GraphJin default_limit hard cap
 
-FilterOp = Literal["eq", "ne", "gt", "gte", "lt", "lte", "in", "like"]
-AggregateFunction = Literal["count", "sum", "avg", "min", "max"]
+FilterOp = Literal["eq", "ne", "gt", "gte", "lt", "lte", "in", "like",
+                   "is_null", "is_not_null"]
+AggregateFunction = Literal["count", "sum", "avg", "min", "max", "ratio"]
+HavingFunction = Literal["count", "sum", "avg", "min", "max"]
+HavingOp = Literal["eq", "ne", "gt", "gte", "lt", "lte"]
 Operation = Literal["list", "aggregate"]
 AnswerStatus = Literal["answered", "clarification", "unsupported",
                        "dependency_error"]
+
+# Filter ops that carry no value (missing-value filtering, spec 005).
+_NULL_OPS = {"is_null", "is_not_null"}
+
+MAX_GROUP_BY = 3  # 1-3 grouping fields per grouped request
 
 
 class Filter(BaseModel):
@@ -89,10 +97,35 @@ class Filter(BaseModel):
     op: FilterOp
     value: object = None
 
+    @model_validator(mode="after")
+    def _null_ops_carry_no_value(self) -> "Filter":
+        if self.op in _NULL_OPS and self.value is not None:
+            raise ValueError(
+                f"filter op {self.op!r} requires a null value")
+        return self
+
 
 class Aggregate(BaseModel):
     function: AggregateFunction
     field: Optional[str] = None  # None allowed only for count
+
+
+class HavingFilter(BaseModel):
+    """Post-aggregation group filter (applied client-side, research D4)."""
+
+    function: HavingFunction
+    field: Optional[str] = None  # None allowed only for count
+    op: HavingOp
+    value: float | int
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def _value_is_numeric(cls, v: object) -> object:
+        # bool is an int subclass; thresholds must be genuine numbers.
+        # mode="before" catches bools before pydantic coerces them to 0/1.
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            raise ValueError("having value must be numeric")
+        return v
 
 
 class StructuredQueryRequest(BaseModel):
@@ -104,6 +137,8 @@ class StructuredQueryRequest(BaseModel):
     filters: list[Filter] = Field(default_factory=list)
     aggregate: Optional[Aggregate] = None
     relationships: list[str] = Field(default_factory=list)
+    group_by: list[str] = Field(default_factory=list)
+    having: Optional[HavingFilter] = None
     order_by: Optional[str] = None
     order_dir: Literal["asc", "desc"] = "asc"
     limit: int = Field(default=MAX_LIMIT, ge=1, le=MAX_LIMIT)
@@ -142,11 +177,71 @@ class StructuredQueryRequest(BaseModel):
                     raise ValueError(
                         f"aggregate field {self.aggregate.field!r} not "
                         f"allowed on {self.entity!r}")
+            if self.aggregate.function == "ratio":
+                # ratio is defined over allowlisted boolean flag columns only
+                # (spec 005 FR-004; research.md Decision 3).
+                if COLUMN_TYPES.get(self.aggregate.field) != "boolean":
+                    raise ValueError(
+                        f"ratio aggregate requires a boolean field; "
+                        f"{self.aggregate.field!r} is "
+                        f"{COLUMN_TYPES.get(self.aggregate.field)}")
+        if self.group_by:
+            if self.operation != "aggregate":
+                raise ValueError(
+                    "group_by is only valid with operation 'aggregate'")
+            if len(self.group_by) > MAX_GROUP_BY:
+                raise ValueError(
+                    f"group_by supports at most {MAX_GROUP_BY} fields")
+            for g in self.group_by:
+                if g not in allowed:
+                    raise ValueError(
+                        f"group_by field {g!r} not allowed on "
+                        f"{self.entity!r}")
+        if self.having is not None:
+            if not self.group_by:
+                raise ValueError("having requires a non-empty group_by")
+            if self.having.function != "count":
+                if not self.having.field:
+                    raise ValueError(
+                        f"having {self.having.function} requires a field")
+                if self.having.field not in allowed:
+                    raise ValueError(
+                        f"having field {self.having.field!r} not allowed on "
+                        f"{self.entity!r}")
+                if COLUMN_TYPES.get(self.having.field) != "numeric":
+                    raise ValueError(
+                        f"having {self.having.function} requires a numeric "
+                        f"field; {self.having.field!r} is "
+                        f"{COLUMN_TYPES.get(self.having.field)}")
         if self.order_by and self.order_by not in allowed:
-            raise ValueError(
-                f"order_by field {self.order_by!r} not allowed on "
-                f"{self.entity!r}")
+            # On grouped requests order_by may also name the aggregate
+            # column ("count" or "<function>_<field>"); the builder maps it.
+            agg_names: set[str] = set()
+            if self.group_by and self.aggregate is not None:
+                fn = self.aggregate.function
+                agg_names.add(fn)
+                if self.aggregate.field:
+                    agg_names.add(f"{fn}_{self.aggregate.field}")
+                if fn == "count":
+                    # GraphJin names the count column after the entity pk.
+                    agg_names.add("count_ticket_id")
+                    agg_names.add("count_merchant_id")
+                    agg_names.add("count_agent_id")
+            if self.order_by not in agg_names:
+                raise ValueError(
+                    f"order_by field {self.order_by!r} not allowed on "
+                    f"{self.entity!r}")
         return self
+
+
+class HavingApplied(BaseModel):
+    """Record of a client-side post-aggregation filter (spec 005, D4)."""
+
+    function: str
+    field: Optional[str] = None
+    op: str
+    value: float | int
+    groups_dropped: int = 0
 
 
 class Evidence(BaseModel):
@@ -155,6 +250,10 @@ class Evidence(BaseModel):
     rows: list[dict] = Field(default_factory=list)
     aggregate: Optional[dict] = None
     row_count: int = 0
+    # spec 005: grouped results may be truncated at the governed limit, and
+    # a having post-filter may have dropped groups client-side.
+    groups_truncated: bool = False
+    having_applied: Optional[HavingApplied] = None
 
 
 class TraceEvent(BaseModel):
