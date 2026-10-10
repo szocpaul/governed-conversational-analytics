@@ -31,9 +31,10 @@ from app.security.validator import validate_request
 # Class A: unsupported shapes must be rejected before GraphJin
 # ---------------------------------------------------------------------------
 
-def test_f2_group_by_rejected_not_silently_dropped():
-    """F2/F8: a planner GROUP BY request must NOT be silently rewritten to a
-    plain count. parse_request_json must raise (unsupported shape)."""
+def test_f2_group_by_parsed_not_silently_dropped():
+    """F2/F8 (updated by spec 005): group_by is now a SUPPORTED governed
+    shape. It must be parsed into the typed request — never silently
+    rewritten to a plain count, and never rejected as unsupported."""
     raw = json.dumps({
         "entity": "tickets", "operation": "aggregate",
         "aggregate": {"function": "count", "field": None},
@@ -44,19 +45,34 @@ def test_f2_group_by_rejected_not_silently_dropped():
         "group_by": ["category"],
         "limit": 100,
     })
-    with pytest.raises(ValueError, match="(?i)unsupported|group"):
-        parse_request_json(raw)
+    req = parse_request_json(raw)
+    assert req.group_by == ["category"]
+    assert len(req.filters) == 2
 
 
-def test_f8_group_by_simple_rejected():
+def test_f8_group_by_simple_accepted():
+    # Spec 005 FR-001: grouped aggregation is a governed shape.
     raw = json.dumps({
         "entity": "tickets", "operation": "aggregate",
         "aggregate": {"function": "count", "field": None},
         "group_by": ["category"],
         "limit": 100,
     })
-    with pytest.raises(ValueError):
-        parse_request_json(raw)
+    req = parse_request_json(raw)
+    assert req.group_by == ["category"]
+
+
+def test_group_alias_keys_still_rejected():
+    # The non-canonical aliases remain unsupported shapes.
+    for alias in ("group", "groupby"):
+        raw = json.dumps({
+            "entity": "tickets", "operation": "aggregate",
+            "aggregate": {"function": "count", "field": None},
+            alias: ["category"],
+            "limit": 100,
+        })
+        with pytest.raises(ValueError, match="(?i)unsupported|group"):
+            parse_request_json(raw)
 
 
 def test_having_rejected():

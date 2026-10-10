@@ -21,18 +21,24 @@
     "DEV-011",
     "DEV-012",
     "DEV-013",
-    "DEV-014"
+    "DEV-014",
+    "DEV-015",
+    "DEV-016",
+    "DEV-017",
+    "DEV-018",
+    "DEV-019",
+    "DEV-020"
   ],
-  "trainset_size": 14,
+  "trainset_size": 20,
   "held_out_ids_consumed": 0,
   "errors": [],
   "accepted_demo_ids": [
-    "DEV-002",
     "DEV-004",
-    "DEV-007",
-    "DEV-014"
+    "DEV-005",
+    "DEV-019",
+    "DEV-020"
   ],
-  "output_program_sha256": "cea31477654470293d1861441f1080c686f4bc2294d3686e5e6ffef046f83d0b",
+  "output_program_sha256": "421b664260b97ac9df3516111a28e7591ae2971d1207c285077dbe673e91f235",
   "versions": {
     "dspy": "3.2.1",
     "model_id": "models\\Qwen3.8-27B-UD-Q4_K_M.gguf",

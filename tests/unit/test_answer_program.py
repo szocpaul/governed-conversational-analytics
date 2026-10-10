@@ -103,3 +103,64 @@ def test_trace_latency():
     tr = Trace()
     tr.add("classified")
     assert tr.latency_ms() >= 0.0
+
+
+# ---------------------------------------------------------------------------
+# Ratio percentage grounding (spec 005, T013)
+# ---------------------------------------------------------------------------
+
+def test_ratio_percentage_answer_grounded():
+    from app.ai.answer_program import is_grounded
+    ev = Evidence(
+        rows=[], aggregate={"ratio_resolution_breached": 0.5041322314049587},
+        row_count=0)
+    assert is_grounded("50.4% of tickets breached their resolution SLA.",
+                       ev, question="What percentage of tickets breached "
+                                    "their resolution SLA?") is True
+
+
+def test_ratio_wrong_percentage_ungrounded():
+    from app.ai.answer_program import is_grounded
+    ev = Evidence(
+        rows=[], aggregate={"ratio_resolution_breached": 0.5041322314049587},
+        row_count=0)
+    # 61.2% is not the evidenced ratio.
+    assert is_grounded("61.2% of tickets breached their resolution SLA.",
+                       ev, question="What percentage?") is False
+
+
+def test_ratio_per_group_percentages_grounded():
+    from app.ai.answer_program import is_grounded
+    ev = Evidence(rows=[
+        {"category": "API Integrations", "ratio_resolution_breached": 0.6981},
+        {"category": "Payments & Checkout", "ratio_resolution_breached": 0.793},
+    ], row_count=2)
+    assert is_grounded(
+        "API Integrations: 69.8%; Payments & Checkout: 79.3%.", ev,
+        question="Breach percentage per category?") is True
+
+
+def test_null_ratio_no_fabricated_number():
+    from app.ai.answer_program import is_grounded
+    ev = Evidence(rows=[], aggregate={"ratio_resolution_breached": None},
+                  row_count=0)
+    # Any percentage claim with a null ratio is ungrounded.
+    assert is_grounded("0% of tickets breached.", ev,
+                       question="What percentage breached?") is False
+
+
+def test_thousands_separator_number_grounded():
+    """An answer restating an evidence number with a thousands separator
+    ("1,807" for 1807) is grounded — the comma is formatting, not a new
+    fact."""
+    from app.ai.answer_program import is_grounded
+    ev = Evidence(rows=[], aggregate={"count": 1807}, row_count=0)
+    assert is_grounded("1,807 tickets have been closed.", ev,
+                       question="How many tickets have been closed?") is True
+
+
+def test_thousands_separator_wrong_number_ungrounded():
+    from app.ai.answer_program import is_grounded
+    ev = Evidence(rows=[], aggregate={"count": 1807}, row_count=0)
+    assert is_grounded("1,708 tickets have been closed.", ev,
+                       question="How many tickets have been closed?") is False

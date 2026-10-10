@@ -85,15 +85,77 @@ def _normalize_result(result: object) -> dict:
     return {k: _norm_value(v) for k, v in result.items()}
 
 
+# Ratio values compare with 0.001 absolute tolerance (spec 005 data-model).
+RATIO_TOLERANCE = 0.001
+
+
+def _is_ratio_key(key: object) -> bool:
+    return isinstance(key, str) and key.startswith("ratio_")
+
+
+def _ratio_match(a: object, e: object) -> bool:
+    """Ratio comparison: both null -> match; both numeric within tolerance."""
+    if a is None or e is None:
+        return a is None and e is None
+    if isinstance(a, bool) or isinstance(e, bool):
+        return False
+    if isinstance(a, (int, float)) and isinstance(e, (int, float)):
+        return abs(float(a) - float(e)) <= RATIO_TOLERANCE
+    return False
+
+
+def _norm_group_row(row: object) -> object:
+    if not isinstance(row, dict):
+        return row
+    return {k: _norm_value(v) for k, v in row.items()}
+
+
+def _groups_match(actual_groups: object, expected_groups: object,
+                  ordered: bool) -> bool:
+    """Compare group rows; order-sensitive only when `ordered` is set."""
+    if not isinstance(actual_groups, list) or             not isinstance(expected_groups, list):
+        return False
+    a = [_norm_group_row(g) for g in actual_groups]
+    e = [_norm_group_row(g) for g in expected_groups]
+    if ordered:
+        return a == e
+    # Unordered: match as multisets of normalized rows.
+    import json as _json
+    def key(row):
+        return _json.dumps(row, sort_keys=True, default=str)
+    return sorted(map(key, a)) == sorted(map(key, e))
+
+
 def execution_accuracy(actual: object, expected: object) -> float:
     """Return 1.0 when the normalized actual result matches expected.
 
     Floats are compared after rounding to 2 decimals so a labeled value of
-    0.75 matches a raw 0.7520888... . Any missing/extra key or value mismatch
-    returns 0.0. None actual always fails.
+    0.75 matches a raw 0.7520888... . Ratio values (ratio_* keys) compare
+    with 0.001 absolute tolerance. Grouped results compare under the
+    "groups" key: order-sensitive only when expected sets "ordered": true.
+    Any missing/extra key or value mismatch returns 0.0. None actual always
+    fails.
     """
     if actual is None or expected is None:
         return 0.0
+    if not isinstance(actual, dict) or not isinstance(expected, dict):
+        return 0.0
+
+    # Grouped results (spec 005): compare the groups key explicitly.
+    if "groups" in expected:
+        ordered = bool(expected.get("ordered"))
+        if not _groups_match(actual.get("groups"), expected["groups"],
+                             ordered):
+            return 0.0
+        # Compare any additionally labeled keys (e.g. row_count); extra
+        # actual keys are tolerated, missing labeled keys fail.
+        for k, v in expected.items():
+            if k in ("groups", "ordered"):
+                continue
+            if k not in actual or _norm_value(actual[k]) != _norm_value(v):
+                return 0.0
+        return 1.0
+
     a = _normalize_result(actual)
     e = _normalize_result(expected)
     if not e:
@@ -101,6 +163,10 @@ def execution_accuracy(actual: object, expected: object) -> float:
     if set(a.keys()) != set(e.keys()):
         return 0.0
     for k in e:
+        if _is_ratio_key(k):
+            if not _ratio_match(actual.get(k), expected.get(k)):
+                return 0.0
+            continue
         if a[k] != e[k]:
             return 0.0
     return 1.0

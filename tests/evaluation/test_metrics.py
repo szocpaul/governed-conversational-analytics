@@ -158,3 +158,84 @@ def test_latency_stats_empty():
     stats = metrics.latency_stats([])
     assert stats["count"] == 0
     assert stats["median"] is None
+
+
+# ---------------------------------------------------------------------------
+# Grouped results and ratio comparison (spec 005, T016)
+# ---------------------------------------------------------------------------
+
+def test_execution_accuracy_grouped_rows_match():
+    actual = {"groups": [
+        {"category": "Payments & Checkout", "count_ticket_id": 483},
+        {"category": "API Integrations", "count_ticket_id": 477},
+    ]}
+    expected = {"groups": [
+        {"category": "Payments & Checkout", "count_ticket_id": 483},
+        {"category": "API Integrations", "count_ticket_id": 477},
+    ]}
+    assert metrics.execution_accuracy(actual, expected) == 1.0
+
+
+def test_execution_accuracy_grouped_rows_order_sensitive_when_ranked():
+    # Order matters when the question implies ranking (top-first).
+    actual = {"groups": [
+        {"category": "API Integrations", "count_ticket_id": 477},
+        {"category": "Payments & Checkout", "count_ticket_id": 483},
+    ]}
+    expected = {"groups": [
+        {"category": "Payments & Checkout", "count_ticket_id": 483},
+        {"category": "API Integrations", "count_ticket_id": 477},
+    ], "ordered": True}
+    assert metrics.execution_accuracy(actual, expected) == 0.0
+
+
+def test_execution_accuracy_grouped_rows_unordered_when_not_ranked():
+    # Without an "ordered" flag, group order does not matter.
+    actual = {"groups": [
+        {"category": "API Integrations", "count_ticket_id": 477},
+        {"category": "Payments & Checkout", "count_ticket_id": 483},
+    ]}
+    expected = {"groups": [
+        {"category": "Payments & Checkout", "count_ticket_id": 483},
+        {"category": "API Integrations", "count_ticket_id": 477},
+    ]}
+    assert metrics.execution_accuracy(actual, expected) == 1.0
+
+
+def test_execution_accuracy_grouped_value_mismatch():
+    actual = {"groups": [{"category": "X", "count_ticket_id": 100}]}
+    expected = {"groups": [{"category": "X", "count_ticket_id": 483}]}
+    assert metrics.execution_accuracy(actual, expected) == 0.0
+
+
+def test_execution_accuracy_grouped_missing_group():
+    actual = {"groups": [{"category": "X", "count_ticket_id": 483}]}
+    expected = {"groups": [{"category": "X", "count_ticket_id": 483},
+                           {"category": "Y", "count_ticket_id": 477}]}
+    assert metrics.execution_accuracy(actual, expected) == 0.0
+
+
+def test_execution_accuracy_ratio_within_tolerance():
+    # ratio comparison: 0.001 absolute tolerance (spec 005 data-model).
+    assert metrics.execution_accuracy(
+        {"ratio_resolution_breached": 0.5041322314049587},
+        {"ratio_resolution_breached": 0.504}) == 1.0
+
+
+def test_execution_accuracy_ratio_outside_tolerance():
+    assert metrics.execution_accuracy(
+        {"ratio_resolution_breached": 0.5041},
+        {"ratio_resolution_breached": 0.51}) == 0.0
+
+
+def test_execution_accuracy_ratio_null_vs_value():
+    assert metrics.execution_accuracy(
+        {"ratio_resolution_breached": None},
+        {"ratio_resolution_breached": 0.504}) == 0.0
+
+
+def test_execution_accuracy_ratio_null_match():
+    # Empty base set: both null -> match.
+    assert metrics.execution_accuracy(
+        {"ratio_resolution_breached": None},
+        {"ratio_resolution_breached": None}) == 1.0

@@ -13,18 +13,23 @@ with zero governed calls.
 from __future__ import annotations
 
 from app.api.schemas import (
+    _NULL_OPS,
     _NUMERIC_AGGREGATES,
     _ORDERABLE_TYPES,
     COLUMN_TYPES,
     ENTITIES,
+    MAX_GROUP_BY,
     MAX_LIMIT,
     RELATIONSHIPS,
     StructuredQueryRequest,
 )
 from app.security.errors import ValidationError
 
-_VALID_OPS = {"eq", "ne", "gt", "gte", "lt", "lte", "in", "like"}
-_VALID_AGG = {"count", "sum", "avg", "min", "max"}
+_VALID_OPS = {"eq", "ne", "gt", "gte", "lt", "lte", "in", "like",
+              "is_null", "is_not_null"}
+_VALID_AGG = {"count", "sum", "avg", "min", "max", "ratio"}
+_VALID_HAVING_FUNCS = {"count", "sum", "avg", "min", "max"}
+_VALID_HAVING_OPS = {"eq", "ne", "gt", "gte", "lt", "lte"}
 
 
 def _value_matches_type(value: object, col_type: str) -> bool:
@@ -65,11 +70,16 @@ def _check_filter_value(field: str, op: str, value: object) -> None:
     if col_type is None:
         # Unknown column: the allowlist check reports it separately.
         return
+    if op in _NULL_OPS:
+        # Missing-value filters (spec 005): value MUST be null/absent.
+        if value is not None:
+            raise ValidationError(
+                f"filter op {op!r} on {field!r} requires a null value")
+        return
     if value is None:
-        # No is-null operator exists in the governed schema (F10).
         raise ValidationError(
-            f"null filter value on {field!r} is unsupported; "
-            "no is-null operator is available")
+            f"null filter value on {field!r} requires the is_null or "
+            "is_not_null operator")
     if op == "in":
         if not isinstance(value, (list, tuple)) or not value:
             raise ValidationError(
@@ -121,10 +131,6 @@ def validate_request(req: StructuredQueryRequest) -> StructuredQueryRequest:
         raise ValidationError(
             f"limit {req.limit} out of range 1..{MAX_LIMIT}")
 
-    if req.order_by is not None and req.order_by not in allowed:
-        raise ValidationError(
-            f"order_by field {req.order_by!r} not allowed on {req.entity!r}")
-
     if req.operation == "aggregate":
         if req.aggregate is None:
             raise ValidationError("aggregate operation requires aggregate")
@@ -153,5 +159,71 @@ def validate_request(req: StructuredQueryRequest) -> StructuredQueryRequest:
                 raise ValidationError(
                     f"aggregate {req.aggregate.function} does not support "
                     f"field {req.aggregate.field!r} of type {field_type}")
+            if req.aggregate.function == "ratio" and \
+                    field_type != "boolean":
+                # ratio is defined over boolean flag columns only (FR-004).
+                raise ValidationError(
+                    f"ratio aggregate requires a boolean field; "
+                    f"{req.aggregate.field!r} is {field_type}")
+
+    # group_by: 1-3 allowlisted fields, aggregate-only (spec 005).
+    if req.group_by:
+        if req.operation != "aggregate":
+            raise ValidationError(
+                "group_by is only valid with operation 'aggregate'")
+        if req.aggregate is None:
+            raise ValidationError("group_by requires an aggregate")
+        if len(req.group_by) > MAX_GROUP_BY:
+            raise ValidationError(
+                f"group_by supports at most {MAX_GROUP_BY} fields")
+        for g in req.group_by:
+            if g not in allowed:
+                raise ValidationError(
+                    f"group_by field {g!r} not allowed on {req.entity!r}")
+
+    # having: post-aggregation group filter, only with group_by (spec 005).
+    if req.having is not None:
+        if not req.group_by:
+            raise ValidationError("having requires a non-empty group_by")
+        if req.having.function not in _VALID_HAVING_FUNCS:
+            raise ValidationError(
+                f"invalid having function: {req.having.function!r}")
+        if req.having.op not in _VALID_HAVING_OPS:
+            raise ValidationError(
+                f"invalid having operator: {req.having.op!r}")
+        value = req.having.value
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValidationError("having value must be numeric")
+        if req.having.function != "count":
+            if not req.having.field:
+                raise ValidationError(
+                    f"having {req.having.function} requires a field")
+            if req.having.field not in allowed:
+                raise ValidationError(
+                    f"having field {req.having.field!r} not allowed on "
+                    f"{req.entity!r}")
+            if COLUMN_TYPES.get(req.having.field) != "numeric":
+                raise ValidationError(
+                    f"having {req.having.function} requires a numeric "
+                    f"field; {req.having.field!r} is "
+                    f"{COLUMN_TYPES.get(req.having.field)}")
+
+    if req.order_by is not None and req.order_by not in allowed:
+        # On grouped requests order_by may name the aggregate column
+        # ("count", "<function>_<field>", or the GraphJin count_<pk> name).
+        agg_names: set[str] = set()
+        if req.group_by and req.aggregate is not None:
+            fn = req.aggregate.function
+            agg_names.add(fn)
+            if req.aggregate.field:
+                agg_names.add(f"{fn}_{req.aggregate.field}")
+            if fn == "count":
+                agg_names.update(
+                    {"count_ticket_id", "count_merchant_id",
+                     "count_agent_id"})
+        if req.order_by not in agg_names:
+            raise ValidationError(
+                f"order_by field {req.order_by!r} not allowed on "
+                f"{req.entity!r}")
 
     return req

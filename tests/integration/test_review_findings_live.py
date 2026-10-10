@@ -107,11 +107,21 @@ def test_f2_groupby_no_wrong_answer(client):
 
 def test_f8_top_category_no_wrong_answer(client):
     body = _query(client, "Which category has the most tickets?")
-    # The bug returned "No matching data" with count=2057. After the fix the
-    # GROUP BY shape is rejected (unsupported) or the question is clarified.
-    assert body["status"] in ("unsupported", "clarification"), (
-        f"expected unsupported/clarification, got {body['status']}: "
-        f"{body['answer']!r}")
+    # Spec 004 bug: returned "No matching data" with count=2057. Spec 005
+    # makes the grouped shape SUPPORTED: the answer must name the true top
+    # category (Payments & Checkout, 483) grounded in executed groups, or
+    # fall back to a stable category without inventing data.
+    if body["status"] == "answered":
+        assert "Payments & Checkout" in body["answer"], (
+            f"wrong top category answered: {body['answer']!r}")
+        assert "483" in body["answer"], (
+            f"top-category count missing from answer: {body['answer']!r}")
+        rows = (body.get("evidence") or {}).get("rows") or []
+        assert rows and rows[0].get("category") == "Payments & Checkout"
+        assert rows[0].get("count_ticket_id") == 483
+    else:
+        assert body["status"] in ("clarification", "unsupported"), (
+            f"unexpected status {body['status']}: {body['answer']!r}")
 
 
 # ---------------------------------------------------------------------------

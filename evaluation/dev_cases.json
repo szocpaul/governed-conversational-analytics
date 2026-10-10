@@ -1,382 +1,566 @@
 {
-  "version": 1,
-  "kind": "development",
-  "description": "Labeled development cases for BootstrapFewShot optimization (spec 004, T001). These are the ONLY cases the optimizer may consume (FR-009, SC-007). Each supported case carries a labeled governed request and the normalized expected execution result.",
-  "cases": [
-    {
-      "id": "DEV-001",
-      "category": "count",
-      "question": "How many tickets are there in total?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [],
-          "limit": 100
-        },
-        "result": {
-          "count": 2057
-        }
-      }
+ "version": 2,
+ "kind": "development",
+ "description": "Labeled development cases for BootstrapFewShot optimization (spec 004, T001). These are the ONLY cases the optimizer may consume (FR-009, SC-007). Each supported case carries a labeled governed request and the normalized expected execution result.",
+ "cases": [
+  {
+   "id": "DEV-001",
+   "category": "count",
+   "question": "How many tickets are there in total?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [],
+     "limit": 100
     },
-    {
-      "id": "DEV-002",
-      "category": "filtered_count",
-      "question": "How many P1 tickets are there?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [
-            {
-              "field": "priority",
-              "op": "eq",
-              "value": "P1"
-            }
-          ],
-          "limit": 100
-        },
-        "result": {
-          "count": 112
-        }
-      }
-    },
-    {
-      "id": "DEV-003",
-      "category": "filtered_count",
-      "question": "How many tickets are in the Payments & Checkout category?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [
-            {
-              "field": "category",
-              "op": "eq",
-              "value": "Payments & Checkout"
-            }
-          ],
-          "limit": 100
-        },
-        "result": {
-          "count": 483
-        }
-      }
-    },
-    {
-      "id": "DEV-004",
-      "category": "aggregate",
-      "question": "What is the average CSAT score across all tickets?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "avg",
-            "field": "csat_score"
-          },
-          "filters": [],
-          "limit": 100
-        },
-        "result": {
-          "avg_csat_score": 0.75
-        }
-      }
-    },
-    {
-      "id": "DEV-005",
-      "category": "aggregate",
-      "question": "What is the average resolution time in hours for all tickets?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "avg",
-            "field": "resolution_hours"
-          },
-          "filters": [],
-          "limit": 100
-        },
-        "result": {
-          "avg_resolution_hours": 31.85
-        }
-      }
-    },
-    {
-      "id": "DEV-006",
-      "category": "count",
-      "question": "How many merchants are there?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "merchants",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [],
-          "limit": 100
-        },
-        "result": {
-          "count": 112
-        }
-      }
-    },
-    {
-      "id": "DEV-007",
-      "category": "count",
-      "question": "How many agents do we have?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "agents",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [],
-          "limit": 100
-        },
-        "result": {
-          "count": 20
-        }
-      }
-    },
-    {
-      "id": "DEV-008",
-      "category": "filtered_count",
-      "question": "How many tickets have been reopened?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [
-            {
-              "field": "is_reopened",
-              "op": "eq",
-              "value": true
-            }
-          ],
-          "limit": 100
-        },
-        "result": {
-          "count": 307
-        }
-      }
-    },
-    {
-      "id": "DEV-009",
-      "category": "filtered_count",
-      "question": "How many tickets breached their resolution SLA?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [
-            {
-              "field": "resolution_breached",
-              "op": "eq",
-              "value": true
-            }
-          ],
-          "limit": 100
-        },
-        "result": {
-          "count": 1037
-        }
-      }
-    },
-    {
-      "id": "DEV-010",
-      "category": "filtered_count",
-      "question": "How many merchants are in the Electronics sector?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "merchants",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [
-            {
-              "field": "sector",
-              "op": "eq",
-              "value": "Electronics"
-            }
-          ],
-          "limit": 100
-        },
-        "result": {
-          "count": 14
-        }
-      }
-    },
-    {
-      "id": "DEV-011",
-      "category": "filtered_count",
-      "question": "How many L3 agents are there?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "agents",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [
-            {
-              "field": "tier",
-              "op": "eq",
-              "value": "L3"
-            }
-          ],
-          "limit": 100
-        },
-        "result": {
-          "count": 3
-        }
-      }
-    },
-    {
-      "id": "DEV-012",
-      "category": "filtered_count",
-      "question": "How many P1 tickets are in the API Integrations category?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [
-            {
-              "field": "priority",
-              "op": "eq",
-              "value": "P1"
-            },
-            {
-              "field": "category",
-              "op": "eq",
-              "value": "API Integrations"
-            }
-          ],
-          "limit": 100
-        },
-        "result": {
-          "count": 20
-        }
-      }
-    },
-    {
-      "id": "DEV-013",
-      "category": "aggregate",
-      "question": "What is the average first response time in hours?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "avg",
-            "field": "ttfr_hours"
-          },
-          "filters": [],
-          "limit": 100
-        },
-        "result": {
-          "avg_ttfr_hours": 3.22
-        }
-      }
-    },
-    {
-      "id": "DEV-014",
-      "category": "filtered_count",
-      "question": "How many tickets breached their first response SLA?",
-      "expected": {
-        "status_in": [
-          "answered"
-        ],
-        "request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [
-            {
-              "field": "response_breached",
-              "op": "eq",
-              "value": true
-            }
-          ],
-          "limit": 100
-        },
-        "result": {
-          "count": 345
-        }
-      }
+    "result": {
+     "count": 2057
     }
-  ]
+   }
+  },
+  {
+   "id": "DEV-002",
+   "category": "filtered_count",
+   "question": "How many P1 tickets are there?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [
+      {
+       "field": "priority",
+       "op": "eq",
+       "value": "P1"
+      }
+     ],
+     "limit": 100
+    },
+    "result": {
+     "count": 112
+    }
+   }
+  },
+  {
+   "id": "DEV-003",
+   "category": "filtered_count",
+   "question": "How many tickets are in the Payments & Checkout category?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [
+      {
+       "field": "category",
+       "op": "eq",
+       "value": "Payments & Checkout"
+      }
+     ],
+     "limit": 100
+    },
+    "result": {
+     "count": 483
+    }
+   }
+  },
+  {
+   "id": "DEV-004",
+   "category": "aggregate",
+   "question": "What is the average CSAT score across all tickets?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "avg",
+      "field": "csat_score"
+     },
+     "filters": [],
+     "limit": 100
+    },
+    "result": {
+     "avg_csat_score": 0.75
+    }
+   }
+  },
+  {
+   "id": "DEV-005",
+   "category": "aggregate",
+   "question": "What is the average resolution time in hours for all tickets?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "avg",
+      "field": "resolution_hours"
+     },
+     "filters": [],
+     "limit": 100
+    },
+    "result": {
+     "avg_resolution_hours": 31.85
+    }
+   }
+  },
+  {
+   "id": "DEV-006",
+   "category": "count",
+   "question": "How many merchants are there?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "merchants",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [],
+     "limit": 100
+    },
+    "result": {
+     "count": 112
+    }
+   }
+  },
+  {
+   "id": "DEV-007",
+   "category": "count",
+   "question": "How many agents do we have?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "agents",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [],
+     "limit": 100
+    },
+    "result": {
+     "count": 20
+    }
+   }
+  },
+  {
+   "id": "DEV-008",
+   "category": "filtered_count",
+   "question": "How many tickets have been reopened?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [
+      {
+       "field": "is_reopened",
+       "op": "eq",
+       "value": true
+      }
+     ],
+     "limit": 100
+    },
+    "result": {
+     "count": 307
+    }
+   }
+  },
+  {
+   "id": "DEV-009",
+   "category": "filtered_count",
+   "question": "How many tickets breached their resolution SLA?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [
+      {
+       "field": "resolution_breached",
+       "op": "eq",
+       "value": true
+      }
+     ],
+     "limit": 100
+    },
+    "result": {
+     "count": 1037
+    }
+   }
+  },
+  {
+   "id": "DEV-010",
+   "category": "filtered_count",
+   "question": "How many merchants are in the Electronics sector?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "merchants",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [
+      {
+       "field": "sector",
+       "op": "eq",
+       "value": "Electronics"
+      }
+     ],
+     "limit": 100
+    },
+    "result": {
+     "count": 14
+    }
+   }
+  },
+  {
+   "id": "DEV-011",
+   "category": "filtered_count",
+   "question": "How many L3 agents are there?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "agents",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [
+      {
+       "field": "tier",
+       "op": "eq",
+       "value": "L3"
+      }
+     ],
+     "limit": 100
+    },
+    "result": {
+     "count": 3
+    }
+   }
+  },
+  {
+   "id": "DEV-012",
+   "category": "filtered_count",
+   "question": "How many P1 tickets are in the API Integrations category?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [
+      {
+       "field": "priority",
+       "op": "eq",
+       "value": "P1"
+      },
+      {
+       "field": "category",
+       "op": "eq",
+       "value": "API Integrations"
+      }
+     ],
+     "limit": 100
+    },
+    "result": {
+     "count": 20
+    }
+   }
+  },
+  {
+   "id": "DEV-013",
+   "category": "aggregate",
+   "question": "What is the average first response time in hours?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "avg",
+      "field": "ttfr_hours"
+     },
+     "filters": [],
+     "limit": 100
+    },
+    "result": {
+     "avg_ttfr_hours": 3.22
+    }
+   }
+  },
+  {
+   "id": "DEV-014",
+   "category": "filtered_count",
+   "question": "How many tickets breached their first response SLA?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [
+      {
+       "field": "response_breached",
+       "op": "eq",
+       "value": true
+      }
+     ],
+     "limit": 100
+    },
+    "result": {
+     "count": 345
+    }
+   }
+  },
+  {
+   "id": "DEV-015",
+   "category": "grouped_count",
+   "question": "Which category has the most tickets?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "group_by": [
+      "category"
+     ],
+     "order_by": "count",
+     "order_dir": "desc",
+     "limit": 100
+    },
+    "result": {
+     "groups": [
+      {
+       "category": "Payments & Checkout",
+       "count_ticket_id": 483
+      },
+      {
+       "category": "API Integrations",
+       "count_ticket_id": 477
+      },
+      {
+       "category": "Notifications",
+       "count_ticket_id": 374
+      },
+      {
+       "category": "Fulfilment & Logistics",
+       "count_ticket_id": 363
+      },
+      {
+       "category": "Account Access",
+       "count_ticket_id": 360
+      }
+     ],
+     "ordered": true
+    }
+   }
+  },
+  {
+   "id": "DEV-016",
+   "category": "grouped_having",
+   "question": "Which merchants have more than 25 tickets?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "group_by": [
+      "merchant_id"
+     ],
+     "having": {
+      "function": "count",
+      "field": null,
+      "op": "gt",
+      "value": 25
+     },
+     "limit": 100
+    },
+    "result": {
+     "row_count": 9
+    }
+   }
+  },
+  {
+   "id": "DEV-017",
+   "category": "missing_value_count",
+   "question": "How many tickets have no assigned agent?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [
+      {
+       "field": "assigned_agent_id",
+       "op": "is_null",
+       "value": null
+      }
+     ],
+     "limit": 100
+    },
+    "result": {
+     "count": 250
+    }
+   }
+  },
+  {
+   "id": "DEV-018",
+   "category": "missing_value_count",
+   "question": "How many tickets are still open?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "count",
+      "field": null
+     },
+     "filters": [
+      {
+       "field": "closed_at",
+       "op": "is_null",
+       "value": null
+      }
+     ],
+     "limit": 100
+    },
+    "result": {
+     "count": 250
+    }
+   }
+  },
+  {
+   "id": "DEV-019",
+   "category": "ratio",
+   "question": "What percentage of tickets breached their resolution SLA?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "ratio",
+      "field": "resolution_breached"
+     },
+     "filters": [],
+     "limit": 100
+    },
+    "result": {
+     "ratio_resolution_breached": 0.504
+    }
+   }
+  },
+  {
+   "id": "DEV-020",
+   "category": "ratio",
+   "question": "What percentage of tickets breached their first response SLA?",
+   "expected": {
+    "status_in": [
+     "answered"
+    ],
+    "request": {
+     "entity": "tickets",
+     "operation": "aggregate",
+     "aggregate": {
+      "function": "ratio",
+      "field": "response_breached"
+     },
+     "filters": [],
+     "limit": 100
+    },
+    "result": {
+     "ratio_response_breached": 0.168
+    }
+   }
+  }
+ ]
 }

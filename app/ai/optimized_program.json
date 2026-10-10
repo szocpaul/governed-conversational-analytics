@@ -4,26 +4,54 @@
     "train": [],
     "demos": [
       {
-        "case_id": "DEV-014",
-        "question": "How many tickets breached their first response SLA?",
+        "case_id": "DEV-005",
+        "question": "What is the average resolution time in hours for all tickets?",
         "expected_request": {
           "entity": "tickets",
           "operation": "aggregate",
           "aggregate": {
-            "function": "count",
-            "field": null
+            "function": "avg",
+            "field": "resolution_hours"
           },
-          "filters": [
-            {
-              "field": "response_breached",
-              "op": "eq",
-              "value": true
-            }
-          ],
+          "filters": [],
           "limit": 100
         },
         "expected_result": {
-          "count": 345
+          "avg_resolution_hours": 31.85
+        }
+      },
+      {
+        "case_id": "DEV-020",
+        "question": "What percentage of tickets breached their first response SLA?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "ratio",
+            "field": "response_breached"
+          },
+          "filters": [],
+          "limit": 100
+        },
+        "expected_result": {
+          "ratio_response_breached": 0.168
+        }
+      },
+      {
+        "case_id": "DEV-019",
+        "question": "What percentage of tickets breached their resolution SLA?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "ratio",
+            "field": "resolution_breached"
+          },
+          "filters": [],
+          "limit": 100
+        },
+        "expected_result": {
+          "ratio_resolution_breached": 0.504
         }
       },
       {
@@ -42,50 +70,10 @@
         "expected_result": {
           "avg_csat_score": 0.75
         }
-      },
-      {
-        "case_id": "DEV-007",
-        "question": "How many agents do we have?",
-        "expected_request": {
-          "entity": "agents",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [],
-          "limit": 100
-        },
-        "expected_result": {
-          "count": 20
-        }
-      },
-      {
-        "case_id": "DEV-002",
-        "question": "How many P1 tickets are there?",
-        "expected_request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [
-            {
-              "field": "priority",
-              "op": "eq",
-              "value": "P1"
-            }
-          ],
-          "limit": 100
-        },
-        "expected_result": {
-          "count": 112
-        }
       }
     ],
     "signature": {
-      "instructions": "Classify a natural-language ITSM analytics question.\n\nDecide whether the question is a supported analytical question over the\ngoverned ITSM dataset (tickets, merchants, agents), is materially\nambiguous and needs clarification, or is unsupported/out of scope.\n\nA question is SUPPORTED only when it can be answered by ONE simple query:\na single list of rows, or a single aggregate (count/sum/avg/min/max)\nwith optional filters and ordering.\n\nClassify as AMBIGUOUS when the question asks for several things at once\n(multi-part, e.g. \"which agent is best AND how many tickets\"), because a\nsingle governed query cannot answer every part and no part may be\nsilently dropped.\n\nClassify as UNSUPPORTED when the question needs query shapes the schema\ncannot express: per-group breakdowns (GROUP BY), \"by category/sector/\nregion\" distributions, comparisons across groups, or data outside the\ngoverned dataset.",
+      "instructions": "Classify a natural-language ITSM analytics question.\n\nDecide whether the question is a supported analytical question over the\ngoverned ITSM dataset (tickets, merchants, agents), is materially\nambiguous and needs clarification, or is unsupported/out of scope.\n\nA question is SUPPORTED only when it can be answered by ONE governed\nquery: a single list of rows, a single aggregate (count/sum/avg/min/max/\nratio) with optional filters and ordering, or a grouped breakdown\n(group_by over 1-3 fields with one aggregate, optionally filtered\nper-group with having).\n\nClassify as AMBIGUOUS when the question asks for several things at once\n(multi-part, e.g. \"which agent is best AND how many tickets\"), because a\nsingle governed query cannot answer every part and no part may be\nsilently dropped.\n\nClassify as UNSUPPORTED when the question needs query shapes the schema\ncannot express: joins across entities in one result, subqueries, unions,\nor data outside the governed dataset.",
       "fields": [
         {
           "prefix": "Question:",
@@ -108,46 +96,6 @@
     "train": [],
     "demos": [
       {
-        "case_id": "DEV-007",
-        "question": "How many agents do we have?",
-        "expected_request": {
-          "entity": "agents",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [],
-          "limit": 100
-        },
-        "expected_result": {
-          "count": 20
-        }
-      },
-      {
-        "case_id": "DEV-002",
-        "question": "How many P1 tickets are there?",
-        "expected_request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "count",
-            "field": null
-          },
-          "filters": [
-            {
-              "field": "priority",
-              "op": "eq",
-              "value": "P1"
-            }
-          ],
-          "limit": 100
-        },
-        "expected_result": {
-          "count": 112
-        }
-      },
-      {
         "case_id": "DEV-004",
         "question": "What is the average CSAT score across all tickets?",
         "expected_request": {
@@ -165,31 +113,59 @@
         }
       },
       {
-        "case_id": "DEV-014",
-        "question": "How many tickets breached their first response SLA?",
+        "case_id": "DEV-020",
+        "question": "What percentage of tickets breached their first response SLA?",
         "expected_request": {
           "entity": "tickets",
           "operation": "aggregate",
           "aggregate": {
-            "function": "count",
-            "field": null
+            "function": "ratio",
+            "field": "response_breached"
           },
-          "filters": [
-            {
-              "field": "response_breached",
-              "op": "eq",
-              "value": true
-            }
-          ],
+          "filters": [],
           "limit": 100
         },
         "expected_result": {
-          "count": 345
+          "ratio_response_breached": 0.168
+        }
+      },
+      {
+        "case_id": "DEV-019",
+        "question": "What percentage of tickets breached their resolution SLA?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "ratio",
+            "field": "resolution_breached"
+          },
+          "filters": [],
+          "limit": 100
+        },
+        "expected_result": {
+          "ratio_resolution_breached": 0.504
+        }
+      },
+      {
+        "case_id": "DEV-005",
+        "question": "What is the average resolution time in hours for all tickets?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "avg",
+            "field": "resolution_hours"
+          },
+          "filters": [],
+          "limit": 100
+        },
+        "expected_result": {
+          "avg_resolution_hours": 31.85
         }
       }
     ],
     "signature": {
-      "instructions": "Plan a typed, governed GraphQL query request for a supported question.\n\nOutput a JSON object for a StructuredQueryRequest over the governed ITSM\nschema. Entities and fields are strictly limited to the allowlist:\n\n- tickets: ticket_id, merchant_id, category, sub_category, priority,\n  created_at, is_legacy, assigned_agent_id, category_mismatch,\n  first_response_at, closed_at, ttfr_hours, resolution_hours,\n  response_breached, resolution_breached, is_reopened, is_reopen_child,\n  is_incident_ticket, csat_score\n- merchants: merchant_id, merchant_name, sector, tier, region\n- agents: agent_id, agent_name, tier, primary_category, shift_region,\n  efficiency_multiplier\n\nRules:\n- operation is \"list\" (return rows) or \"aggregate\" (count/sum/avg/min/max).\n- filters use ops: eq, ne, gt, gte, lt, lte, in, like.\n- Use created_at with gte/lt for time ranges (ISO dates).\n- relationships may include merchants and/or agents from tickets.\n- limit must be between 1 and 100.\n- order_by is a single field NAME (string), order_dir is \"asc\" or \"desc\".\n  For \"highest/lowest/most/least/newest/oldest\" questions you MUST set\n  order_by on the relevant field with the matching direction and a small\n  limit, so the returned row is the actual extremum.\n- avg and sum are ONLY valid on numeric fields (ttfr_hours,\n  resolution_hours, csat_score, efficiency_multiplier). For ratios over\n  boolean flags (e.g. SLA breach percentage), use count with a filter on\n  the flag instead of avg/sum on the boolean.\n- Filter values must match the column type: integer ids take integers,\n  boolean flags take true/false, text fields take strings. Never filter\n  an id field with a name; never use null as a filter value (no is-null\n  operator exists).\n- The schema CANNOT group results: NEVER emit group_by, having, distinct,\n  joins, or subqueries. If the question needs a per-group breakdown,\n  plan only the single aggregate or list that answers it without\n  grouping.\n- NEVER output SQL. Output ONLY the JSON request object.",
+      "instructions": "Plan a typed, governed GraphQL query request for a supported question.\n\nOutput a JSON object for a StructuredQueryRequest over the governed ITSM\nschema. Entities and fields are strictly limited to the allowlist:\n\n- tickets: ticket_id, merchant_id, category, sub_category, priority,\n  created_at, is_legacy, assigned_agent_id, category_mismatch,\n  first_response_at, closed_at, ttfr_hours, resolution_hours,\n  response_breached, resolution_breached, is_reopened, is_reopen_child,\n  is_incident_ticket, csat_score\n- merchants: merchant_id, merchant_name, sector, tier, region\n- agents: agent_id, agent_name, tier, primary_category, shift_region,\n  efficiency_multiplier\n\nRules:\n- operation is \"list\" (return rows) or \"aggregate\" (count/sum/avg/min/max/\n  ratio).\n- filters use ops: eq, ne, gt, gte, lt, lte, in, like, is_null,\n  is_not_null. The is_null/is_not_null ops take NO value (null).\n  Missing-value filtering: \"open\" tickets are closed_at is_null;\n  \"closed\" tickets are closed_at is_not_null; \"no assigned agent\" is\n  assigned_agent_id is_null.\n- Use created_at with gte/lt for time ranges (ISO dates).\n- relationships may include merchants and/or agents from tickets.\n- limit must be between 1 and 100.\n- order_by is a single field NAME (string), order_dir is \"asc\" or \"desc\".\n  For \"highest/lowest/most/least/newest/oldest\" questions you MUST set\n  order_by on the relevant field with the matching direction and a small\n  limit, so the returned row is the actual extremum.\n- avg and sum are ONLY valid on numeric fields (ttfr_hours,\n  resolution_hours, csat_score, efficiency_multiplier).\n- For ratio/percentage questions over a boolean flag (e.g. \"what\n  percentage of tickets breached their resolution SLA\"), use the\n  \"ratio\" aggregate with the flag as field: {\"function\": \"ratio\",\n  \"field\": \"resolution_breached\"}. ratio is ONLY valid on boolean\n  fields (is_legacy, category_mismatch, response_breached,\n  resolution_breached, is_reopened, is_reopen_child,\n  is_incident_ticket). The result is a value in [0, 1]; a null result\n  means the base set is empty. ratio also works with group_by for a\n  per-group percentage.\n- Filter values must match the column type: integer ids take integers,\n  boolean flags take true/false, text fields take strings. Never filter\n  an id field with a name. Only the is_null/is_not_null ops carry a null\n  value; every other op requires a typed non-null value.\n- Grouped breakdowns ARE supported: for \"by category/per sector/which\n  group has the most\" questions, use operation \"aggregate\" with\n  \"group_by\": [1-3 allowlisted fields] and one aggregate. On grouped\n  requests order_by may name a grouping field or the string \"count\"\n  (the aggregate column) — use order_by \"count\", order_dir \"desc\" for\n  \"which group has the most\" questions.\n- An optional \"having\" object filters groups AFTER aggregation:\n  {\"function\": \"count\"|\"sum\"|\"avg\"|\"min\"|\"max\", \"field\": null or an\n  allowlisted numeric field, \"op\": \"eq\"|\"ne\"|\"gt\"|\"gte\"|\"lt\"|\"lte\",\n  \"value\": <number>}. having is ONLY valid with a non-empty group_by\n  (e.g. \"merchants with more than 50 tickets\" -> group_by\n  [\"merchant_id\"], having {\"function\": \"count\", \"field\": null,\n  \"op\": \"gt\", \"value\": 50}).\n- NEVER emit joins, subqueries, union, or a bare \"distinct\" key.\n- NEVER output SQL. Output ONLY the JSON request object.",
       "fields": [
         {
           "prefix": "Question:",

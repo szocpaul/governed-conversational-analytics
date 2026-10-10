@@ -112,8 +112,15 @@ def _execute_read_only(request: dict):
         client = GraphJinClient(url, timeout=30.0)
         raw = client.execute(req)
         evidence = normalize_result(req, raw)
+        # Apply the deterministic having post-filter so the compared result
+        # matches the pipeline's governed output (spec 005, research D4).
+        from app.data.result_normalizer import apply_having
+        evidence = apply_having(evidence, req)
         if evidence.aggregate:
             return dict(evidence.aggregate)
+        if req.group_by:
+            return {"groups": [dict(r) for r in evidence.rows],
+                    "row_count": evidence.row_count}
         return {"row_count": evidence.row_count}
     except Exception:  # noqa: BLE001
         return None
@@ -161,9 +168,17 @@ def text_to_query_metric(example, pred, trace=None) -> float:
         if execution_result is None:
             return 0.0
 
-    # Normalized result must match the labeled expected result.
+    # Normalized result must match the labeled expected result. When the
+    # label does not include group rows, compare on the labeled keys only
+    # (a grouped request labeled by row_count is still a valid demo).
+    expected_result = example.expected_result
+    if isinstance(execution_result, dict) and \
+            isinstance(expected_result, dict) and \
+            "groups" in execution_result and "groups" not in expected_result:
+        execution_result = {k: v for k, v in execution_result.items()
+                            if k in expected_result}
     if metrics.execution_accuracy(execution_result,
-                                  example.expected_result) != 1.0:
+                                  expected_result) != 1.0:
         return 0.0
 
     return 1.0
@@ -251,10 +266,16 @@ class ExecutableQueryProgram(dspy.Module):
                     "http://127.0.0.1:8081/api/v1/graphql")
                 client = GraphJinClient(url, timeout=30.0)
                 raw = client.execute(request)
-                evidence = normalize_result(request, raw)
+                from app.data.result_normalizer import apply_having
+                evidence = apply_having(normalize_result(request, raw),
+                                        request)
                 executed = True
                 if evidence.aggregate:
                     execution_result = dict(evidence.aggregate)
+                elif getattr(request, "group_by", None):
+                    execution_result = {
+                        "groups": [dict(r) for r in evidence.rows],
+                        "row_count": evidence.row_count}
                 else:
                     execution_result = {"row_count": evidence.row_count}
             except GraphJinError:

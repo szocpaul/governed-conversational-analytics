@@ -26,7 +26,7 @@ from app.api.schemas import (
     TraceEvent,
 )
 from app.data.graphjin_client import GraphJinClient, GraphJinError
-from app.data.result_normalizer import normalize_result
+from app.data.result_normalizer import apply_having, normalize_result
 from app.observability.trace import Trace
 from app.security.classifier import classify_question
 from app.security.errors import PipelineError, UnsupportedQuestionError
@@ -119,12 +119,13 @@ def _query_inner(req: QuestionRequest) -> QueryResponse:
         planned = qp(question=req.question)
     except UnsupportedQuestionError as exc:
         # Planner emitted a query shape the governed pipeline does not
-        # support (GROUP BY, HAVING, ...). Stable category; no query ran.
+        # support (joins, subqueries, unions, ...). Stable category; no
+        # query ran.
         trace.add("refused", f"unsupported request shape: {exc.sanitized}")
         return _response(
             "unsupported",
             "That question needs a query shape outside the supported ITSM "
-            "analytics scope (for example, grouped breakdowns).",
+            "analytics scope (for example, joins or subqueries).",
             trace,
         )
     except PipelineError as exc:
@@ -183,6 +184,47 @@ def _query_inner(req: QuestionRequest) -> QueryResponse:
             "The governed data dependency is unavailable; no fallback was "
             "attempted.",
             trace,
+        )
+
+    # 4b. Post-aggregation group filter (spec 005; research.md Decision 4).
+    # GraphJin v3 has no native HAVING: apply the validated having filter
+    # deterministically over the executed groups. Pure function; no database
+    # access.
+    if request.having is not None:
+        before_groups = evidence.row_count
+        evidence = apply_having(evidence, request)
+        trace.add(
+            "having_applied",
+            f"{request.having.function} {request.having.op} "
+            f"{request.having.value}: {evidence.having_applied.groups_dropped}"
+            f" of {before_groups} groups dropped client-side")
+        if evidence.row_count == 0:
+            trace.add("clarification",
+                      "no groups match the post-aggregation filter")
+            return _response(
+                "clarification",
+                "No groups match the requested aggregate threshold.",
+                trace,
+                evidence,
+            )
+
+    # 4c. Null ratio (empty base set): the ratio is undefined when no rows
+    # match the base filters (GraphJin avg over an empty set returns null).
+    # Stable clarification, never a fabricated number (spec 005 FR-004).
+    if (request.aggregate is not None
+            and request.aggregate.function == "ratio"
+            and not request.group_by
+            and evidence.aggregate is not None
+            and evidence.aggregate.get(
+                f"ratio_{request.aggregate.field}") is None):
+        trace.add("clarification",
+                  "ratio undefined: the base set is empty")
+        return _response(
+            "clarification",
+            "The ratio is undefined because no tickets match the base "
+            "filters (the denominator is zero).",
+            trace,
+            evidence,
         )
 
     # 5. Grounded answer. Ungrounded output is refused, never shown as fact.
