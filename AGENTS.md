@@ -20,6 +20,14 @@ Project v2 is done: 60/60 tasks complete across all five features.
   aggregations, is-null filtering, ratio/percentage metrics (see
   `specs/005-analytics-surface-v2/runner-report.md`)
 
+**Demo UI access (runtime note, 2026-10-10)**: the demo server is currently
+running bound to the Tailscale interface for human review:
+`http://100.118.113.57:8001/` (host `ubuntu-8gb-nbg1-1`, started with
+`uvicorn app.main:app --host 100.118.113.57 --port 8001`). The documented
+default remains `127.0.0.1:8001` (README quickstart). GraphJin (8081) stays
+localhost-only; the app proxies it. The private LLM endpoint must never be
+exposed in the UI, errors, or traces.
+
 The rules below remain in force for any new work on this repository.
 
 ## Source-of-Truth Precedence
