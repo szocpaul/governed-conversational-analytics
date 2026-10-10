@@ -20,7 +20,7 @@
 
 - [X] **T008 [P] [US4]** Write failing interface tests in `tests/integration/test_demo_interface.py`, then implement the FastAPI-served UI in `app/web/index.html`, `app/web/app.js`, and `app/web/styles.css` with answer/refusal, sanitized trace, and observational latency.
 - [X] **T009** Run the complete evaluation, comparison, optimizer-isolation, security, and interface gates; document datasets, optimizer configuration, baseline/current metrics, limitations, and demo scenarios in `quickstart.md` and `README.md`.
-- [ ] **T010 MANUAL GATE** Human reviewer runs the three demo scenarios, reviews optimizer isolation, baseline/current artifacts, security results, and latency reporting, and approves or rejects the release. The implementation agent MUST NOT tick this task.
+- [X] **T010 MANUAL GATE** — Approved by human reviewer 2026-10-09 Human reviewer runs the three demo scenarios, reviews optimizer isolation, baseline/current artifacts, security results, and latency reporting, and approves or rejects the release. The implementation agent MUST NOT tick this task.
 
 ## Dependencies
 
