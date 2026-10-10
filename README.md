@@ -40,8 +40,8 @@ by drapertoby, MIT License, pinned to commit `cf2e4e07ebcabb9c1234642585ee6f5bc2
 ```bash
 cp .env.example .env          # set LLM_BASE_URL and LLM_MODEL to pinned values
 python3 -m app.ai.preflight   # verify the pinned local model (no fallback)
-uvicorn app.main:app --host 127.0.0.1 --port 8000
-curl -s -X POST http://127.0.0.1:8000/query \
+uvicorn app.main:app --host 127.0.0.1 --port 8001
+curl -s -X POST http://127.0.0.1:8001/query \
   -H 'Content-Type: application/json' \
   -d '{"question": "How many P1 tickets are there?"}'
 ```
@@ -145,13 +145,14 @@ uvicorn app.main:app --host 127.0.0.1 --port 8001   # http://127.0.0.1:8001/
   (23 held-out, 7 security). Held-out IDs never enter optimization (SC-007).
 - Optimizer: `dspy.BootstrapFewShot` only (metric_threshold=1.0, 4 bootstrapped
   + 4 labeled demos, 1 round, 3 max errors). No GEPA/MIPROv2/SIMBA/fine-tuning.
-- Current held-out results: structural validity 0.9565, execution accuracy
-  0.8125, zero prohibited effects, zero disclosures, false-refusal rate 0.1875.
-  Comparison gate passes; optimization produced no held-out change (reported
-  honestly, intervals identical). Latency median ~3.1 s (observational only).
-- Known limitation: three held-out cases are false-refused by the spec-002
-  answer-grounding check despite correct executed results; documented in the
-  [quickstart](specs/004-evaluation-and-demo/quickstart.md).
+- Current held-out results (after the T010-review correctness fixes):
+  structural validity 1.0, execution accuracy 1.0, zero prohibited effects,
+  zero disclosures, zero false refusals. Comparison gate passes (exit 0).
+  Latency median ~3.1 s, p90 ~3.5 s (observational only).
+- The pre-fix baseline (validity 0.9565, accuracy 0.8125) is preserved in
+  `artifacts/baseline.json`; the improvement over it is a documented,
+  justified fix of the buggy behavior the baseline measured (see
+  `specs/004-evaluation-and-demo/fix-report.md`).
 
 ## Repository layout
 
@@ -173,4 +174,5 @@ artifacts/baseline.json     # pre-optimization held-out baseline + noise
 artifacts/current.json      # post-optimization held-out evaluation
 artifacts/optimization-run.json  # optimizer config, IDs, hashes, versions
 specs/                      # approved Spec Kit artifacts per feature
+  005-analytics-surface-v2-sketch.md  # future work sketch (GROUP BY, is-null, ratio)
 ```

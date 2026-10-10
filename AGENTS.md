@@ -6,6 +6,24 @@ Implement the approved Governed Conversational Analytics project from the versio
 
 The repository files are the source of truth. Do not reconstruct requirements from chat history, assumptions, or this file alone.
 
+## Project Status (as of 2026-10-09)
+
+**Features 001-004 are COMPLETE and human-approved (all MANUAL GATEs passed).**
+Project v1 is done: 39/39 tasks complete across all four features.
+
+- 001 Governed ITSM Data Foundation: complete (T001-T011)
+- 002 Conversational Query Pipeline: complete (T001-T009)
+- 003 Security Hardening: complete (T001-T009)
+- 004 Evaluation and Demo: complete (T001-T010), including T010-review
+  correctness fixes (see `specs/004-evaluation-and-demo/fix-report.md`)
+
+**Next planned work**: `specs/005-analytics-surface-v2-sketch.md` (a sketch,
+not yet an approved spec) covering GROUP BY/HAVING aggregations, is-null
+filtering, and ratio/percentage metrics. Do NOT start it without an approved
+spec and explicit instruction.
+
+The rules below remain in force for any new work on this repository.
+
 ## Source-of-Truth Precedence
 
 When instructions conflict, use this order:
