@@ -165,6 +165,9 @@ uvicorn app.main:app --host 127.0.0.1 --port 8001   # http://127.0.0.1:8001/
   ratio cases plus security cases abusing the new operators (feature 005).
 - Optimizer: `dspy.BootstrapFewShot` only (metric_threshold=1.0, 4 bootstrapped
   + 4 labeled demos, 1 round, 3 max errors). No GEPA/MIPROv2/SIMBA/fine-tuning.
+- DSPy LM backend: pinned to the native lm15 engine (`engine="lm15"` in
+  `app/ai/llm.py`) — DSPy 3.5 readiness; the LiteLLM compatibility fallback
+  is disabled (see `specs/007-dspy-34-feature-evaluation-sketch.md`).
 - Current held-out results (feature 006, DSPy 3.4.0 on Python 3.14,
   eval-set v2, optimized program): structural validity 1.0, execution
   accuracy 1.0, zero prohibited effects, zero disclosures, zero false
