@@ -1,67 +1,66 @@
 # Feature Sketch: DSPy 3.4 Feature Evaluation (007)
 
-**Status**: Sketch — not yet a full spec. Deferred from feature 006
-(`specs/006-dspy-upgrade-sketch.md` / `specs/006-dspy-34-upgrade/`), whose
-scope explicitly excluded adopting new DSPy 3.4 features.
-**Depends on**: specs 001-006 complete (006 delivers the DSPy 3.4.0 runtime
-with re-baseline and re-optimization).
+**Status**: Evaluation COMPLETE (2026-10-11, research session, no code
+changes). Four of five features rejected; one adopt candidate remains:
+**explicit lm15 native-engine pin** (DSPy 3.5 readiness). This sketch now
+scopes only that follow-up.
+**Depends on**: specs 001-006 complete (006 delivered DSPy 3.4.0 with
+re-baseline and re-optimization).
 
-## Origin
+## Evaluation summary (2026-10-11)
 
-DSPy 3.4.0 ships new capabilities that feature 006 deliberately did not
-adopt, to keep the version upgrade isolated and measurable. The user
-requested that these be evaluated for usefulness to this project in a
-follow-up spec:
+Method: installed DSPy 3.4.0 source/docstring inspection, one live call
+against the project's pinned endpoint with backend-selection
+instrumentation, project usage grep (no tools, no async in the query path),
+and governance constraints from AGENTS.md.
 
-- **Flex** (3.3.0+ experimental): code-optimizable modules — GEPA rewrites
-  module source, not just instructions.
-- **ReActV2** (3.4.0): async tool-using agent with `acall` and async tools.
-- **Native LM engines / lm15** (3.4.0): `dspy.lm15` request/response/streaming
-  types, `engine="auto"|"lm15"|"litellm"`, `register_provider` for custom
-  OpenAI-compatible HTTP services. This one has a hard driver: DSPy 3.5
-  removes the legacy LM path (`lm(messages=[...])` calls, custom
-  `BaseLM.forward()` integrations, `LegacyEngine`). Feature 006 keeps the
-  supported LiteLLM compatibility backend, so there is no emergency, but the
-  migration question must be answered before 3.5.
-- **TypeSafe / Jev** (3.4.0 experimental): decision types (`Noul`, `Choice`,
-  `Score`) with probability evidence, `ReAnchor` calibration.
-- **MCP support** (3.4.0): model-context-protocol tool integration.
+| Feature | Verdict | Key evidence |
+|---|---|---|
+| **lm15 / native engines** | **ADOPT candidate** (see scope below) | Live check: our `engine="auto"` config already resolves to the native lm15 backend (`native: True`, provider `openai-chat` / `OpenAIChatLM`) for the pinned llama.cpp endpoint. DSPy 3.5 removes the legacy path (`lm(messages=[...])`, custom `BaseLM.forward()`, `LegacyEngine`) — none used by the project directly, but the silent LiteLLM fallback under `auto` is unpinned behavior. |
+| **ReActV2** | REJECT | Tool-using async agent; the project has zero tools by design (governed surface: planner emits typed JSON, deterministic validator is the boundary, GraphJin is the only data path). AGENTS.md prohibits giving the model an arbitrary SQL execution tool. Serving path is synchronous. Experimental status. |
+| **Flex** | REJECT (under current governance) | Flex's purpose is GEPA rewriting module source (`module_src`); under BootstrapFewShot it is only a heavier Predict wrapper. GEPA is prohibited (AGENTS.md). Our metric is binary without feedback text — GEPA's reflective loop would be random search anyway. Experimental status. |
+| **TypeSafe / Jev** | REJECT | Requires an external service (`TYPESAFE_API_KEY`, `TYPESAFE_BASE_URL`, "System One API") — conflicts with "no provider switch" and private-endpoint hygiene. Decision types (Noul/Choice/Score) add probability evidence the project's discrete classification/planning outputs and evidence-grounding rule do not need. Experimental status. |
+| **MCP support** | REJECT | `dspy.utils.mcp` converts MCP tools into DSPy tools — presupposes tool use (see ReActV2). Data access must stay behind the governed GraphJin boundary; MCP would introduce non-governed data sources. |
 
-## Proposed scope (evaluation, not adoption)
+## Remaining scope: explicit lm15 pin (DSPy 3.5 readiness)
 
-1. For each feature above, assess usefulness against this project's actual
-   needs and governance constraints:
-   - the governed read-only query surface (no arbitrary SQL; deterministic
-     validator as boundary);
-   - the pinned local llama.cpp model and endpoint (no provider switch);
-   - the approved BootstrapFewShot-only optimizer rule (GEPA/MIPROv2/SIMBA
-     prohibited — note: Flex is designed around GEPA, so its evaluation must
-     respect or explicitly challenge that governance constraint);
-   - baseline discipline (any adoption implies re-baseline).
-2. Produce a written evaluation per feature: what it would enable, what it
-   would cost (migration, new risks, governance conflicts), and a
-   recommendation (adopt in a follow-up implementation spec / defer /
-   reject).
-3. The lm15/native-engine evaluation has priority because of the DSPy 3.5
-   removal deadline; its recommendation should include a concrete migration
-   plan sketch if adoption is recommended.
-4. Any actual adoption is a separate implementation feature with its own
-   spec, baseline, and gates — this feature produces evaluations and
-   recommendations only.
+1. Pin `engine="lm15"` in `app/ai/llm.py` (`configure_dspy`) so the native
+   backend is required, not silently selected: any future environment or
+   DSPy change that would fall back to the LiteLLM compatibility engine
+   fails loudly instead of changing the measured runtime.
+2. Add a test asserting the resolved backend is native (lm15) for the
+   configured LM — guards against silent fallback.
+3. Re-run the standard validation gates (full test suite; the measured-run
+   deprecation check from feature 006 must stay at zero DSPy warnings).
+4. Baseline impact assessment: if the pin does not change measured behavior
+   (expected — `auto` already resolves native), a full re-baseline is NOT
+   required; record the verification runs in the feature's notes. If any
+   measured difference appears, STOP AND REPORT and apply feature 004
+   baseline discipline.
+5. Update README/AGENTS.md pins if the change lands.
 
 ## Constraints carried forward
 
-- No code changes to the governed query path in this feature (evaluation
-  only); experiments, if any, run outside the production path and never on
-  held-out cases.
-- Held-out isolation and the approved-optimizer rule remain in force.
-- No provider/model switch; experiments use the same pinned local endpoint.
+- Same pinned local model and endpoint; no provider/model switch.
+- No other DSPy 3.4 feature adoption (see verdicts above).
+- Held-out isolation, approved-optimizer rule, and latency-observational
+  rules unchanged.
+- If `engine="lm15"` breaks the pipeline on the pinned endpoint (e.g. a
+  client setting the native engine cannot honor), STOP AND REPORT with the
+  option to stay on `auto` and revisit before the DSPy 3.5 upgrade.
+
+## Out of scope
+
+- Migrating to explicit `dspy.lm15.Request`/`Response` calls at call sites
+  (the adapters handle this on the native path; revisit only if DSPy 3.5
+  deprecates more surface).
+- `register_provider` declaration for the local endpoint (only needed if the
+  model string stops resolving natively; current resolution works).
+- Re-evaluating Flex if the GEPA prohibition is ever lifted (would need its
+  own governance decision first).
 
 ## Open questions for the spec phase
 
-- Does the evaluation need runnable micro-benchmarks (e.g. lm15 vs LiteLLM
-  latency/behavior on the local endpoint), or is a documented
-  design-level assessment enough?
-- Should the Flex evaluation be scoped given that its optimizer (GEPA) is
-  prohibited by governance — evaluate Flex only under BootstrapFewShot, or
-  formally request a governance exception as part of the recommendation?
+- None blocking. Default assumption: the pin is behavior-preserving; the
+  spec phase should confirm this with one measured sample before deciding
+  the baseline question (scope item 4).
