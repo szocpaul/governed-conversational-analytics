@@ -30,6 +30,9 @@ preserved byte-identical under `*-pre-006-2026-10-11.json` names, a new
 discipline, the same-version comparison gate passes (exit 0), and the
 cross-version report (`artifacts/cross-version-006.json`) shows no quality
 delta versus 3.2.1 (see `specs/006-dspy-34-upgrade/runner-report.md`).
+Follow-up (2026-10-11): the DSPy LM backend is pinned to the native lm15
+engine (`engine="lm15"` in `app/ai/llm.py`) for DSPy 3.5 readiness; see
+`specs/007-dspy-34-feature-evaluation-sketch.md`.
 
 **Demo UI access (runtime note, 2026-10-10)**: the demo server is currently
 running bound to the Tailscale interface for human review:

@@ -114,6 +114,10 @@ def configure_dspy(config: LLMConfig):
         temperature=config.temperature,
         cache=config.cache,
         model_type="chat",
+        # Pin the native lm15 backend (DSPy 3.5 readiness, specs/007): the
+        # pinned local endpoint resolves natively, and the pin turns any
+        # future silent LiteLLM fallback into a loud configuration error.
+        engine="lm15",
     )
     dspy.configure(lm=lm)
     return lm
