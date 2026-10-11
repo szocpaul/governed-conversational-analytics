@@ -103,12 +103,18 @@ def collect_metadata(cache: bool) -> dict:
     except Exception:  # noqa: BLE001
         eval_version = 1
 
+    import platform
+
+    import dspy
+
     return {
         "code_version": _code_version(),
         "model_id": model_id,
         "temperature": temperature,
         "cache": bool(cache),
         "llm_runtime": "llama.cpp",
+        "dspy_version": dspy.__version__,
+        "python_version": platform.python_version(),
         "prompt_version": 1,
         "policy_version": 1,
         "schema_version": 1,

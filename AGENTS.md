@@ -6,10 +6,12 @@ Implement the approved Governed Conversational Analytics project from the versio
 
 The repository files are the source of truth. Do not reconstruct requirements from chat history, assumptions, or this file alone.
 
-## Project Status (as of 2026-10-10)
+## Project Status (as of 2026-10-11)
 
-**Features 001-005 are COMPLETE and human-approved (all MANUAL GATEs passed).**
-Project v2 is done: 60/60 tasks complete across all five features.
+**Features 001-006 are COMPLETE and human-approved (all MANUAL GATEs passed).**
+Project v2 is done: 60/60 tasks across features 001-005, plus feature 006
+(DSPy 3.2.1 → 3.4.0 upgrade with full re-baseline and re-optimization,
+T001-T019).
 
 - 001 Governed ITSM Data Foundation: complete (T001-T011)
 - 002 Conversational Query Pipeline: complete (T001-T009)
@@ -19,6 +21,15 @@ Project v2 is done: 60/60 tasks complete across all five features.
 - 005 Analytics Surface v2: complete (T001-T021) — GROUP BY / having
   aggregations, is-null filtering, ratio/percentage metrics (see
   `specs/005-analytics-surface-v2/runner-report.md`)
+
+**Feature 006 (DSPy 3.4 Upgrade) is COMPLETE and human-approved (T001-T019,
+MANUAL GATE passed 2026-10-11).** The pinned DSPy dependency is upgraded
+from 3.2.1 to 3.4.0 on Python 3.14.4; the pre-upgrade artifacts are
+preserved byte-identical under `*-pre-006-2026-10-11.json` names, a new
+3.4.0 baseline and re-optimized program are recorded under feature 004
+discipline, the same-version comparison gate passes (exit 0), and the
+cross-version report (`artifacts/cross-version-006.json`) shows no quality
+delta versus 3.2.1 (see `specs/006-dspy-34-upgrade/runner-report.md`).
 
 **Demo UI access (runtime note, 2026-10-10)**: the demo server is currently
 running bound to the Tailscale interface for human review:

@@ -35,12 +35,15 @@
   "accepted_demo_ids": [
     "DEV-004",
     "DEV-005",
+    "DEV-009",
+    "DEV-010",
+    "DEV-016",
     "DEV-019",
     "DEV-020"
   ],
-  "output_program_sha256": "421b664260b97ac9df3516111a28e7591ae2971d1207c285077dbe673e91f235",
+  "output_program_sha256": "3769c4821d9987787b3e388dfe7c77ccc5f3e81ba859944e0475e0375e2bdafe",
   "versions": {
-    "dspy": "3.2.1",
+    "dspy": "3.4.0",
     "model_id": "models\\Qwen3.8-27B-UD-Q4_K_M.gguf",
     "temperature": 0.0,
     "cache": false
