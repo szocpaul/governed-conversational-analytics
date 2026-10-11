@@ -1,5 +1,5 @@
 # Conversational query pipeline (feature 002) — pinned versions.
-dspy==3.2.1
+dspy==3.4.0
 fastapi==0.143.0
 uvicorn[standard]==0.45.0
 pydantic==2.12.5

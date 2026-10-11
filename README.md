@@ -30,6 +30,14 @@ dataset — never through arbitrary SQL or unrestricted credentials.
    over executed groups (GraphJin v3 has no native HAVING). Every new shape
    is allowlisted by the same deterministic validator; the surface stays
    read-only. See its [quickstart](specs/005-analytics-surface-v2/quickstart.md).
+6. **[006-dspy-34-upgrade](specs/006-dspy-34-upgrade/)** — upgrades the pinned
+   DSPy dependency from 3.2.1 to 3.4.0 on Python 3.14 and re-establishes the
+   measured quality state on the new runtime: pre-upgrade artifacts preserved
+   byte-identical under dated `*-pre-006-*` names, new baseline recorded under
+   feature 004 discipline, approved BootstrapFewShot re-optimization (dev cases
+   only, unchanged config), same-version comparison gate, and a cross-version
+   (3.2.1 vs 3.4.0) quality report as human decision input. See its
+   [quickstart](specs/006-dspy-34-upgrade/quickstart.md).
 
 ## Quick start (feature 001)
 
@@ -157,15 +165,21 @@ uvicorn app.main:app --host 127.0.0.1 --port 8001   # http://127.0.0.1:8001/
   ratio cases plus security cases abusing the new operators (feature 005).
 - Optimizer: `dspy.BootstrapFewShot` only (metric_threshold=1.0, 4 bootstrapped
   + 4 labeled demos, 1 round, 3 max errors). No GEPA/MIPROv2/SIMBA/fine-tuning.
-- Current held-out results (feature 005, eval-set v2, optimized program):
-  structural validity 1.0, execution accuracy 1.0, zero prohibited effects,
-  zero disclosures, zero false refusals across 33 cases. Comparison gate
-  passes (exit 0). Latency median ~2.9 s, p90 ~3.4 s (observational only).
-- The feature-005 pre-optimization baseline (validity 1.0, accuracy 1.0,
-  zero-variance noise over 3×8-case samples) is `artifacts/baseline.json`;
-  the pre-005 baseline is preserved as
-  `artifacts/baseline-pre-005-2026-10-10.json`, and the spec-004 pre-fix
-  baseline is documented in `specs/004-evaluation-and-demo/fix-report.md`.
+- Current held-out results (feature 006, DSPy 3.4.0 on Python 3.14,
+  eval-set v2, optimized program): structural validity 1.0, execution
+  accuracy 1.0, zero prohibited effects, zero disclosures, zero false
+  refusals across 33 cases. Comparison gate passes (exit 0). Latency median
+  ~3.0 s, p90 ~3.6 s (observational only).
+- The feature-006 pre-optimization baseline (validity 1.0, accuracy 1.0,
+  zero-variance noise over 3×8-case samples, DSPy 3.4.0) is
+  `artifacts/baseline.json`; the pre-upgrade (DSPy 3.2.1) baseline, current,
+  and optimization-run artifacts are preserved as
+  `artifacts/*-pre-006-2026-10-11.json`, and the 3.2.1-compiled program as
+  `app/ai/optimized_program-pre-006-2026-10-11.json`. The cross-version
+  (3.2.1 vs 3.4.0) quality report is `artifacts/cross-version-006.json`
+  (human review input, never gated). Earlier baselines: pre-005 preserved as
+  `artifacts/baseline-pre-005-2026-10-10.json`; the spec-004 pre-fix baseline
+  is documented in `specs/004-evaluation-and-demo/fix-report.md`.
 
 ## Repository layout
 
@@ -181,6 +195,7 @@ app/web/                    # feature 004 demo UI (index.html, app.js, styles.cs
 app/ai/optimization.py      # feature 004 BootstrapFewShot optimizer + isolation guards
 app/ai/optimized_program.json  # compiled program (dev cases only)
 evaluation/                 # datasets, metrics, runner, comparison gate, security runner
+evaluation/cross_version_report.py  # feature 006 cross-version report (never gated)
 tests/                      # unit, contract, integration, security, evaluation test gates
 artifacts/import-manifest.json  # provenance, checksums, import results
 artifacts/baseline.json     # pre-optimization held-out baseline + noise
@@ -188,6 +203,7 @@ artifacts/current.json      # post-optimization held-out evaluation
 artifacts/optimization-run.json  # optimizer config, IDs, hashes, versions
 specs/                      # approved Spec Kit artifacts per feature
   005-analytics-surface-v2/  # grouped aggregations, is-null filtering, ratio metrics
+  006-dspy-34-upgrade/       # DSPy 3.2.1 -> 3.4.0 re-baseline + re-optimization
 ```
 
 ## Supported question patterns (feature 005)

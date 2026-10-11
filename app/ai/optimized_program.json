@@ -96,54 +96,51 @@
     "train": [],
     "demos": [
       {
-        "case_id": "DEV-004",
-        "question": "What is the average CSAT score across all tickets?",
+        "case_id": "DEV-009",
+        "question": "How many tickets breached their resolution SLA?",
         "expected_request": {
           "entity": "tickets",
           "operation": "aggregate",
           "aggregate": {
-            "function": "avg",
-            "field": "csat_score"
+            "function": "count",
+            "field": null
           },
-          "filters": [],
+          "filters": [
+            {
+              "field": "resolution_breached",
+              "op": "eq",
+              "value": true
+            }
+          ],
           "limit": 100
         },
         "expected_result": {
-          "avg_csat_score": 0.75
+          "count": 1037
         }
       },
       {
-        "case_id": "DEV-020",
-        "question": "What percentage of tickets breached their first response SLA?",
+        "case_id": "DEV-016",
+        "question": "Which merchants have more than 25 tickets?",
         "expected_request": {
           "entity": "tickets",
           "operation": "aggregate",
           "aggregate": {
-            "function": "ratio",
-            "field": "response_breached"
+            "function": "count",
+            "field": null
           },
-          "filters": [],
+          "group_by": [
+            "merchant_id"
+          ],
+          "having": {
+            "function": "count",
+            "field": null,
+            "op": "gt",
+            "value": 25
+          },
           "limit": 100
         },
         "expected_result": {
-          "ratio_response_breached": 0.168
-        }
-      },
-      {
-        "case_id": "DEV-019",
-        "question": "What percentage of tickets breached their resolution SLA?",
-        "expected_request": {
-          "entity": "tickets",
-          "operation": "aggregate",
-          "aggregate": {
-            "function": "ratio",
-            "field": "resolution_breached"
-          },
-          "filters": [],
-          "limit": 100
-        },
-        "expected_result": {
-          "ratio_resolution_breached": 0.504
+          "row_count": 9
         }
       },
       {
@@ -161,6 +158,29 @@
         },
         "expected_result": {
           "avg_resolution_hours": 31.85
+        }
+      },
+      {
+        "case_id": "DEV-010",
+        "question": "How many merchants are in the Electronics sector?",
+        "expected_request": {
+          "entity": "merchants",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "count",
+            "field": null
+          },
+          "filters": [
+            {
+              "field": "sector",
+              "op": "eq",
+              "value": "Electronics"
+            }
+          ],
+          "limit": 100
+        },
+        "expected_result": {
+          "count": 14
         }
       }
     ],
@@ -181,8 +201,8 @@
   },
   "metadata": {
     "dependency_versions": {
-      "python": "3.12",
-      "dspy": "3.2.1",
+      "python": "3.14",
+      "dspy": "3.4.0",
       "cloudpickle": "3.1"
     }
   }

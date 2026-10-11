@@ -1,9 +1,10 @@
 {
-  "timestamp_utc": "2026-10-09T19:12:22.656297+00:00",
+  "timestamp_utc": "2026-10-11T17:20:12.051315+00:00",
   "provider": "openai-compatible",
   "requested_model": "models\\Qwen3.8-27B-UD-Q4_K_M.gguf",
   "temperature": 0.0,
   "cache": false,
+  "dspy_version": "3.4.0",
   "checks": {
     "models_listed": true,
     "chat_completion": true,
@@ -14,8 +15,8 @@
     "models\\Qwen3.8-27B-UD-Q4_K_M.gguf"
   ],
   "exact_model_id": "models\\Qwen3.8-27B-UD-Q4_K_M.gguf",
-  "chat_completion_latency_ms": 465.9,
+  "chat_completion_latency_ms": 432.8,
   "chat_completion_reply": "ready",
-  "dspy_prediction_latency_ms": 1254.1,
+  "dspy_prediction_latency_ms": 986.4,
   "dspy_prediction_status": "ready"
 }

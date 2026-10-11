@@ -49,6 +49,7 @@ def run_preflight(config: LLMConfig | None = None) -> dict:
         "requested_model": config.model,
         "temperature": config.temperature,
         "cache": config.cache,
+        "dspy_version": dspy.__version__,
         "checks": {},
         "ok": False,
     }
