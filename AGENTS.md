@@ -8,10 +8,11 @@ The repository files are the source of truth. Do not reconstruct requirements fr
 
 ## Project Status (as of 2026-10-11)
 
-**Features 001-006 are COMPLETE and human-approved (all MANUAL GATEs passed).**
-Project v2 is done: 60/60 tasks across features 001-005, plus feature 006
-(DSPy 3.2.1 → 3.4.0 upgrade with full re-baseline and re-optimization,
-T001-T019).
+**Features 001-006 and 008 are COMPLETE and human-approved (all MANUAL GATEs
+passed).** Project v2 is done: 60/60 tasks across features 001-005, plus
+feature 006 (DSPy 3.2.1 → 3.4.0 upgrade with full re-baseline and
+re-optimization, T001-T019), plus feature 008 (Query Discovery UI,
+T001-T017).
 
 - 001 Governed ITSM Data Foundation: complete (T001-T011)
 - 002 Conversational Query Pipeline: complete (T001-T009)
@@ -33,6 +34,18 @@ delta versus 3.2.1 (see `specs/006-dspy-34-upgrade/runner-report.md`).
 Follow-up (2026-10-11): the DSPy LM backend is pinned to the native lm15
 engine (`engine="lm15"` in `app/ai/llm.py`) for DSPy 3.5 readiness; see
 `specs/007-dspy-34-feature-evaluation-sketch.md`.
+
+**Feature 008 (Query Discovery UI) is COMPLETE and human-approved
+(T001-T017, MANUAL GATE passed 2026-10-12).** The demo UI now helps users
+who do not know the ITSM dataset: a categorized gallery of 21 curated,
+corpus-verified example questions (one-click run, including a labeled
+refusal demo), a plain-language dataset overview card (tickets, merchants,
+agents + 12 governed dimensions), and guided input (rotating placeholder +
+typing suggestions). Content lives in the version-controlled static asset
+`app/web/examples.json`; no backend API change, no new runtime dependencies.
+Live verification: `python -m evaluation.verify_examples` (21/21 passed,
+artifact `artifacts/examples-verification.json`). See
+`specs/008-query-discovery-ui/runner-report.md`.
 
 **Demo UI access (runtime note, 2026-10-10)**: the demo server is currently
 running bound to the Tailscale interface for human review:
