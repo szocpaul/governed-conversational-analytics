@@ -20,6 +20,10 @@ MODULE_PATH = os.path.join(REPO_ROOT, "app", "ai", "text_generation.py")
 def _load_module():
     spec = importlib.util.spec_from_file_location("app.ai.text_generation", MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
+    # Register before exec so pydantic resolves forward references
+    # (from __future__ import annotations) against the live module.
+    import sys
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 

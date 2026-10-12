@@ -24,6 +24,10 @@ TICKETS_CSV = os.path.join(REPO_ROOT, "data", "raw", "tickets.csv")
 def _load_validator():
     spec = importlib.util.spec_from_file_location("validate_ticket_texts", VALIDATOR_PATH)
     module = importlib.util.module_from_spec(spec)
+    # Register before exec so dataclass/pydantic introspection resolves the
+    # module's namespace.
+    import sys
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
