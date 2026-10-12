@@ -38,6 +38,16 @@ dataset — never through arbitrary SQL or unrestricted credentials.
    only, unchanged config), same-version comparison gate, and a cross-version
    (3.2.1 vs 3.4.0) quality report as human decision input. See its
    [quickstart](specs/006-dspy-34-upgrade/quickstart.md).
+7. **[008-query-discovery-ui](specs/008-query-discovery-ui/)** — makes the
+   demo UI usable for people who do not know the ITSM dataset: a categorized
+   gallery of 21 curated, corpus-verified example questions (one-click run,
+   including a labeled refusal demo), a plain-language dataset overview
+   (tickets, merchants, agents + governed dimensions), and guided input
+   (rotating placeholder examples + typing suggestions). Content is a
+   version-controlled static asset (`app/web/examples.json`); no backend API
+   change. Live gallery verification:
+   `python -m evaluation.verify_examples`. See its
+   [quickstart](specs/008-query-discovery-ui/quickstart.md).
 
 ## Quick start (feature 001)
 
