@@ -55,9 +55,11 @@ class GenerateTicketTexts(dspy.Signature):
     four keys:
 
     - ticket_id: the input ticket's id (integer, copied exactly).
-    - short_description: exactly ONE sentence, at most 100 characters
-      (target about 80), naming the problem and its key detail, consistent
-      with the ticket's category and sub_category.
+    - short_description: exactly ONE complete sentence, at most 100
+      characters (target about 80), naming the problem and its key detail,
+      consistent with the ticket's category and sub_category. Write a full
+      sentence with articles (the/a/an), never a headline-style fragment:
+      e.g. "The sync job fails every night after the update."
     - description: 2-4 sentences, at most 600 characters total, giving
       reporter context, scope, trigger, and impact, with wording
       appropriate to the ticket's priority (urgent and business-critical
