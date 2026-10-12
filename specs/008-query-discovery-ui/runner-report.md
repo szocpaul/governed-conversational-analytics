@@ -121,3 +121,19 @@ pass/fail gate per AGENTS.md.
 
 Status summary sent to sibling session `spec008-launcher-2026-10-12`
 (verified via agent roster).
+
+## 12. MANUAL GATE outcome (2026-10-12)
+
+**T017 APPROVED by the human reviewer.** During review two UX issues were
+found and fixed:
+
+- Commit `091775c`: the result panel (status/answer/latency/trace) moved
+  directly below the query input — previously it rendered at the bottom of
+  the page and required scrolling after every question.
+- Commit `54b0c6b`: spacing added between the result panel and the
+  "Browse example questions" toggle (they visually collided).
+
+The reviewer then re-tested all gallery buttons and interactions in the
+browser and approved the gate. T017 is ticked in tasks.md.
+
+**Feature 008 (Query Discovery UI) is COMPLETE: T001-T017 done.**
