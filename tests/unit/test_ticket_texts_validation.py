@@ -277,12 +277,25 @@ def test_category_consistency_rejects_missing_own_keyword(vv, tickets):
     assert vv.check_category_consistency([entry], tickets)
 
 
-def test_category_consistency_rejects_exclusive_other_category_keyword(vv, tickets):
+def test_category_consistency_rejects_contradiction_other_category_topic(vv, tickets):
+    """A ticket whose text lacks its own topic AND reads like another category
+    is a contradiction (spec: text must not contradict structured columns)."""
+    t = _ticket_for_pair(tickets, "Payments & Checkout", "Card Declines")
+    entry = _entry(int(t["ticket_id"]),
+                   short="The user cannot log in to the account.",
+                   desc="The merchant reports a login failure on the portal. The password page also fails for the user. It started today.")
+    assert vv.check_category_consistency([entry], tickets)
+
+
+def test_category_consistency_allows_incidental_cross_mention(vv, tickets):
+    """A topically-correct ticket (own keyword present) with an incidental
+    cross-category mention is NOT a deterministic contradiction; deep review
+    is the human MANUAL GATE (research R5)."""
     t = _ticket_for_pair(tickets, "Payments & Checkout", "Card Declines")
     entry = _entry(int(t["ticket_id"]),
                    short="The customer card is declined at checkout.",
                    desc="The merchant reports cards are declined at the checkout. The login page also fails for the user. It started today.")
-    assert vv.check_category_consistency([entry], tickets)
+    assert vv.check_category_consistency([entry], tickets) == []
 
 
 # ---------------------------------------------------------------------------
