@@ -69,7 +69,7 @@ closes, free-text submission unaffected.
 
 - [X] T015 Run the full validation gate set from `specs/008-query-discovery-ui/quickstart.md`: `pytest -q` green; `python -m evaluation.verify_examples --output artifacts/examples-verification.json` exit 0 with the artifact committed. Fix any failure at its source.
 - [X] T016 Write `specs/008-query-discovery-ui/runner-report.md`: completed task IDs, files changed, commits, validation commands and exact results, live verification summary (per-category counts, refusals), known limitations, outstanding manual gate. Send a concise status summary to the launcher sibling session if one is reachable (verify the exact sibling name first; otherwise record the delivery failure in the report).
-- [ ] T017 MANUAL GATE — Human UI review: open the demo page, walk quickstart.md section 3 (manual smoke), confirm SC-001..SC-005, then tick this box. DO NOT let an automated agent tick, approve, or bypass this gate.
+- [x] T017 MANUAL GATE — Human UI review: open the demo page, walk quickstart.md section 3 (manual smoke), confirm SC-001..SC-005, then tick this box. DO NOT let an automated agent tick, approve, or bypass this gate.
 
 ## Dependencies
 
