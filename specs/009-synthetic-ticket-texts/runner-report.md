@@ -36,6 +36,19 @@
   checkpointed); resumed run loaded 20 accepted ids, processed only the
   remaining batch, completed 25/25 unique entries in CSV order; checkpoint
   deleted; 0 violations.
+- T012 attempt 1: SIGTERM at 835/2057 (external, ~55 min); checkpoint intact;
+  resumed after endpoint restart; completed 412/412 (2057 entries) but T013
+  validation found 128 violations (lengths 2, english-only 31,
+  category-consistency 95) -> fixed AT SOURCE (commit aa9f499: word-boundary
+  exclusive matching, required-keyword substring matching, exclusive check
+  scoped to own-topic-absent contradictions, resolution_notes complete-sentence
+  instruction, short_description length guard in acceptance) and 25-ticket
+  sanity sample passed with 0 violations.
+- T012 attempt 2 (v2 full regeneration, --fresh): STARTED 2026-10-12 ~22:55 UTC.
+  PARKED FOR THE NIGHT by human decision (LLM shut down); checkpoint intact at
+  55 entries. RESUME TOMORROW on human 'continue': re-run
+  scripts/generate_ticket_texts.py (resumes from checkpoint), then T013
+  validation, then STOP at T014 MANUAL GATE.
 
 ## Validation commands and results
 
