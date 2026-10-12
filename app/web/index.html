@@ -32,6 +32,25 @@
         </form>
         <div id="suggestions" class="suggestions hidden" role="listbox"></div>
       </div>
+
+      <section id="result" class="result hidden" aria-live="polite">
+        <div class="row">
+          <span class="label">Status</span>
+          <span id="status" class="badge"></span>
+        </div>
+        <div class="row">
+          <span class="label">Answer</span>
+          <p id="answer" class="answer"></p>
+        </div>
+        <div class="row">
+          <span class="label">Latency</span>
+          <span id="latency"></span>
+        </div>
+        <div class="row">
+          <span class="label">Trace</span>
+          <ul id="trace" class="trace"></ul>
+        </div>
+      </section>
       <button
         type="button"
         id="gallery-toggle"
@@ -75,24 +94,7 @@
       </ul>
     </aside>
 
-    <section id="result" class="result hidden" aria-live="polite">
-      <div class="row">
-        <span class="label">Status</span>
-        <span id="status" class="badge"></span>
-      </div>
-      <div class="row">
-        <span class="label">Answer</span>
-        <p id="answer" class="answer"></p>
-      </div>
-      <div class="row">
-        <span class="label">Latency</span>
-        <span id="latency"></span>
-      </div>
-      <div class="row">
-        <span class="label">Trace</span>
-        <ul id="trace" class="trace"></ul>
-      </div>
-    </section>
+    
 
     <footer>
       <p>
