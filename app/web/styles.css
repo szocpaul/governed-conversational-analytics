@@ -32,8 +32,8 @@ button {
 }
 button:disabled { opacity: 0.6; cursor: default; }
 .result {
-  margin-top: 0.75rem; background: var(--panel); border: 1px solid #2c3a4d;
-  border-radius: 12px; padding: 1.25rem;
+  margin-top: 0.75rem; margin-bottom: 1rem; background: var(--panel);
+  border: 1px solid #2c3a4d; border-radius: 12px; padding: 1.25rem;
 }
 .hidden { display: none; }
 .row { margin-bottom: 1rem; }
@@ -74,8 +74,9 @@ footer { margin-top: 2.5rem; color: var(--muted); font-size: 0.8rem; }
 .suggestion:hover, .suggestion-active { background: #243246; }
 
 #gallery-toggle {
-  background: var(--panel); color: var(--text); font-weight: 500;
-  font-size: 0.85rem; padding: 0.45rem 0.8rem; border: 1px solid #2c3a4d;
+  margin-top: 0.25rem; background: var(--panel); color: var(--text);
+  font-weight: 500; font-size: 0.85rem; padding: 0.45rem 0.8rem;
+  border: 1px solid #2c3a4d;
 }
 #gallery-toggle::before { content: "\25B8  "; }
 #gallery-toggle[aria-expanded="true"]::before { content: "\25BE  "; }
