@@ -1,6 +1,6 @@
 # Governed Conversational Analytics
 
-Ask plain-English questions about an ITSM dataset — get answers that are
+Ask plain-English questions about an ITSM database — get answers that are
 **provably grounded** in real database results, never fabricated by the
 model, and never able to touch or leak your data.
 
