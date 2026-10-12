@@ -56,17 +56,21 @@ class GenerateTicketTexts(dspy.Signature):
 
     - ticket_id: the input ticket's id (integer, copied exactly).
     - short_description: exactly ONE complete sentence, at most 100
-      characters (target about 80), naming the problem and its key detail,
-      consistent with the ticket's category and sub_category. Write a full
-      sentence with articles (the/a/an), never a headline-style fragment:
-      e.g. "The sync job fails every night after the update."
+      characters (target about 80; NEVER exceed 100), naming the problem
+      and its key detail, consistent with the ticket's category and
+      sub_category. Write a full sentence with articles (the/a/an), never a
+      headline-style fragment: e.g. "The sync job fails every night after
+      the update."
     - description: 2-4 sentences, at most 600 characters total, giving
       reporter context, scope, trigger, and impact, with wording
       appropriate to the ticket's priority (urgent and business-critical
       for P1, calm and minor for P4).
     - resolution_notes: null when the ticket is open (is_open true);
       otherwise 1-3 sentences, at most 450 characters total, stating the
-      root cause, the fix applied, and the verification performed.
+      root cause, the fix applied, and the verification performed. Write
+      every sentence as a complete sentence with articles (the/a/an) and a
+      clear subject, never a telegraphic fragment: e.g. "The team verified
+      the fix under load." not "Verification confirmed stable performance."
 
     Write plain English sentences only: no abbreviations containing
     periods, no bullet lists, no markdown, no placeholders, no template
@@ -85,6 +89,16 @@ class GenerateTicketTexts(dspy.Signature):
 
 class BatchGenerationError(RuntimeError):
     """Raised when a batch fails validation after all bounded retries."""
+
+
+# Hard length limits mirrored from the deterministic validation suite
+# (contracts/validation-suite.md). Entries breaching them are rejected at
+# acceptance so the batch is retried instead of reaching the artifact.
+_LENGTH_LIMITS = {
+    "short_description": 100,
+    "description": 600,
+    "resolution_notes": 450,
+}
 
 
 def ticket_context(ticket: dict) -> dict:
@@ -146,6 +160,12 @@ class TicketTextProgram(dspy.Module):
             if entry.resolution_notes is not None and not entry.resolution_notes.strip():
                 raise ValueError(
                     f"ticket {entry.ticket_id}: empty resolution_notes")
+            for field, limit in _LENGTH_LIMITS.items():
+                value = getattr(entry, field)
+                if isinstance(value, str) and len(value) > limit:
+                    raise ValueError(
+                        f"ticket {entry.ticket_id}: {field} is {len(value)} "
+                        f"chars (limit {limit})")
             if open_by_id[entry.ticket_id] and entry.resolution_notes is not None:
                 raise ValueError(
                     f"ticket {entry.ticket_id}: resolution_notes present for open ticket")
