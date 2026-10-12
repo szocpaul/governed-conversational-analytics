@@ -10,3 +10,8 @@ graphjin/config/.graphjin/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Feature 009: transient generation checkpoint (append-only resume state).
+# Deleted on successful completion; never committed — the pinned artifact is
+# data/raw/tickets_texts.jsonl. (Local sample outputs use /tmp, no rule needed.)
+artifacts/tickets_texts.checkpoint.jsonl

@@ -1,0 +1,23 @@
+{
+  "timestamp_utc": "2026-10-12T19:35:56.524891+00:00",
+  "feature": "009-synthetic-ticket-texts",
+  "provider": "openai-compatible",
+  "requested_model": "models\\Qwen3.8-27B-UD-Q4_K_M.gguf",
+  "temperature": 0.0,
+  "cache": false,
+  "checks": {
+    "models_listed": true,
+    "seeded_chat_completion": true
+  },
+  "ok": true,
+  "available_model_ids": [
+    "models\\Qwen3.8-27B-UD-Q4_K_M.gguf"
+  ],
+  "exact_model_id": "models\\Qwen3.8-27B-UD-Q4_K_M.gguf",
+  "seed": 20261012,
+  "seed_accepted": true,
+  "seeded_chat_latency_ms": 362.9,
+  "seeded_chat_reply": "ready",
+  "llama_cpp_version": "unreported",
+  "llama_cpp_version_note": "endpoint exposes no build version via /v1/models, /props, or /health (checked 2026-10-12)"
+}
