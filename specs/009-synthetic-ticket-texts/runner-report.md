@@ -21,7 +21,21 @@
 
 ## Task log
 
-(filled in as tasks complete)
+- T001-T003 (Setup): baseline recorded (417 passed), preflight OK (exact model ID,
+  seed 20261012 accepted), checkpoint gitignore added. Commit 2dba29c.
+- T004-T006 (Foundational tests): 68 failing tests written and observed failing
+  (module-missing ERRORs). Commit 3febfbb.
+- T007-T009 (US1 implementation): text_generation.py (14/14), validate_ticket_texts.py
+  (44/44), generate_ticket_texts.py (10/10); unit suite 152 passed. Commit 9e94fa7.
+- T010 (live sample 10): exit 0, 2 batches, 27s, 0 retries. First run had 1
+  english-only violation (headline-style fragment without a function word);
+  fixed AT SOURCE in the GenerateTicketTexts docstring (require complete
+  sentences with articles) and regenerated: 0 violations, all 10 entries
+  category-consistent, priority-appropriate, NULL rule respected.
+- T011 (live resume 25): started --sample 25, killed after 4 batches (20
+  checkpointed); resumed run loaded 20 accepted ids, processed only the
+  remaining batch, completed 25/25 unique entries in CSV order; checkpoint
+  deleted; 0 violations.
 
 ## Validation commands and results
 
