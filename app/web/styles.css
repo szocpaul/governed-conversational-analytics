@@ -32,7 +32,7 @@ button {
 }
 button:disabled { opacity: 0.6; cursor: default; }
 .result {
-  margin-top: 1.5rem; background: var(--panel); border: 1px solid #2c3a4d;
+  margin-top: 0.75rem; background: var(--panel); border: 1px solid #2c3a4d;
   border-radius: 12px; padding: 1.25rem;
 }
 .hidden { display: none; }
