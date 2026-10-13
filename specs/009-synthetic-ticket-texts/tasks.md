@@ -74,8 +74,8 @@ query layer; every write attempt stays rejected.
 (incl. is-null on resolution_notes = 250); all write attempts fail with
 zero database changes.
 
-- [ ] T019 [US3] Write `tests/integration/test_graphjin_ticket_texts.py` per contracts/graphjin-policy.md: governed GraphQL select of `short_description`, `description`, `resolution_notes` (with the 100-row limit respected); is-null filter on resolution_notes returns exactly 250 tickets; combined filter (e.g. priority + field selection) works; INSERT/UPDATE/DELETE attempts against tickets are rejected with zero database changes. Run against the live stack and observe FAIL (columns not yet allowlisted).
-- [ ] T020 [US3] Update `graphjin/config/policies.yml`: add exactly `short_description`, `description`, `resolution_notes` to the tickets column allowlist (with `# GENERATED (feature 009)` comments); no other config change (`dev.yml` untouched). Restart GraphJin and iterate until T019 passes.
+- [x] T019 [US3] Write `tests/integration/test_graphjin_ticket_texts.py` per contracts/graphjin-policy.md: governed GraphQL select of `short_description`, `description`, `resolution_notes` (with the 100-row limit respected); is-null filter on resolution_notes returns exactly 250 tickets; combined filter (e.g. priority + field selection) works; INSERT/UPDATE/DELETE attempts against tickets are rejected with zero database changes. Run against the live stack and observe FAIL (columns not yet allowlisted).
+- [x] T020 [US3] Update `graphjin/config/policies.yml`: add exactly `short_description`, `description`, `resolution_notes` to the tickets column allowlist (with `# GENERATED (feature 009)` comments); no other config change (`dev.yml` untouched). Restart GraphJin and iterate until T019 passes.
 - [ ] T021 [US3] Run `pytest tests/security/ -q` (incl. `tests/security/test_read_only_access.py` and `tests/security/test_authorization.py`) and confirm the entire security posture is unchanged (read-only enforcement, authorization, limits/timeouts, redaction) with the new columns exposed.
 
 ## Phase 6: Polish & Validation

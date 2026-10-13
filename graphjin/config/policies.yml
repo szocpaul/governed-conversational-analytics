@@ -66,6 +66,9 @@ tables:
       - name: is_reopen_child
       - name: is_incident_ticket
       - name: csat_score
+      - name: short_description   # GENERATED (feature 009)
+      - name: description         # GENERATED (feature 009)
+      - name: resolution_notes    # GENERATED (feature 009)
 
 # Explicit relationships.
 relationships:
