@@ -1,6 +1,6 @@
 # Runner Report: Feature 009 — Synthetic Ticket Texts
 
-**Status**: T001-T021 COMPLETE; T022 BLOCKED (environmental, see below); T023-T024 pending
+**Status**: COMPLETE — all 24 tasks done (T014 MANUAL GATE approved by human); full gate 500/500 green
 **Date**: 2026-10-13
 **Executor**: Prime Agent (autonomous spec runner)
 
@@ -17,13 +17,11 @@
 
 ## Completed task IDs
 
-T001-T013 (US1), T014 (MANUAL GATE approved by human Pal Majoros 2026-10-13, commit c09cfdb), T015, T016, T017, T018 (US2), T019, T020, T021 (US3).
+ALL: T001-T013 (US1), T014 (MANUAL GATE approved by human Pal Majoros 2026-10-13, commit c09cfdb), T015-T018 (US2), T019-T021 (US3), T022, T023, T024 (polish).
 
 ## Blocked / not-started task IDs
 
-- **T014 (MANUAL GATE)**: NOT ticked — human data-quality review required (see below).
-- T015-T024 (US2 import, US3 exposure, polish): NOT STARTED — hard-blocked on T014
-  per the approved dependency graph (US2 consumes the approved artifact + the gate).
+None. All 24 tasks complete.
 
 ## Files changed
 
@@ -205,7 +203,7 @@ After the human approved T014 (commit c09cfdb):
 - **T021**: `pytest tests/security/ -q` = **94/94 pass** (read-only enforcement,
   authorization, limits/timeouts, redaction) with the 3 columns exposed. Commit a8971dd.
 
-## T022 — full pytest gate: BLOCKED (environmental, NOT a code regression)
+## T022 — full pytest gate: PASSED (500/500) after environmental fix
 
 `pytest -q` = **499 passed, 1 failed**. The single failure is
 `tests/integration/test_review_findings_live.py::test_f10_null_agent_filter_unsupported`,
@@ -239,3 +237,76 @@ Attempted 2026-10-13 after T021: `agent_observe.list_agents()` still does NOT li
 there is no parent route (`No parent matches the current agent`). **Delivery failed** —
 the status summary is retained here (see the T022 section above for the environmental
 blocker and the exact human action needed). The human can also read this file directly.
+
+
+## T022 resolution + T023 + T024 (final)
+
+- **T022 RESOLVED**: the human restarted the llama.cpp endpoint with the approved
+  large context (verified n_ctx = 65536 via /props and /v1/models meta). The F10 live
+  test passes again (42.8s), and the full gate is green:
+  `pytest -q` = **500 passed, 0 failed** (130.94s) — 417 pre-existing + 83 new tests.
+  Commit bcc466f.
+- **T023 (artifact pinning, SC-001)**: recomputed SHA-256 of
+  `data/raw/tickets_texts.jsonl` = `72c96e92...f0ed` — equals
+  `texts-manifest.json.artifact_sha256` AND
+  `artifacts/import-manifest.json.generated_texts.artifact_sha256`;
+  `generated_texts.texts_manifest_sha256` also matches. Both files are committed to
+  Git (`git ls-files --error-unmatch` OK) and byte-stable (working-tree
+  `git hash-object` == `git rev-parse HEAD:` object `79430b67`). Commit bcc466f.
+- **T024**: this report finalized.
+
+## Final validation summary
+
+| Gate | Command | Result |
+|---|---|---|
+| Baseline | `pytest -q` (T001) | 417 passed, 0 failed |
+| Unit | `pytest tests/unit/ -q` | 153 passed |
+| US1 artifact | `python scripts/validate_ticket_texts.py` | exit 0, all 7 checks, 2057 entries |
+| US2 import | `pytest tests/integration/test_ticket_texts_import.py -q` | 8/8 |
+| Feature-001 discipline | `pytest tests/integration/test_database_initialization.py tests/integration/test_database_import.py -q` | 16/16 |
+| US3 exposure | `pytest tests/integration/test_graphjin_ticket_texts.py -q` | 6/6 |
+| Security posture | `pytest tests/security/ -q` | 94/94 |
+| **Full gate (SC-005)** | `pytest -q` | **500 passed, 0 failed** |
+
+## Success-criteria mapping
+
+- **SC-001** (artifact integrity): pinned + committed; SHA-256 stable and cross-checked
+  in both manifests (T023). Any change = new artifact_version + full regeneration.
+- **SC-002** (validation gate): deterministic suite exit 0, 100% of checks on 2057/2057
+  (T013); NULL rule 250 open / 1807 closed.
+- **SC-003** (resume reliability): T011 interrupted-and-resumed sample completed 25/25
+  unique; the full run itself resumed from checkpoints after external interruptions
+  (SIGTERM, deterministic batch failure) with exactly-once coverage.
+- **SC-004** (provenance completeness): texts-manifest records model ID, llama.cpp
+  version ("unreported"), temperature 0, seed 20261012, prompt_version "1", dspy 3.4.0,
+  script + module hashes, batch_config, row_count, output SHA-256, created_at.
+- **SC-005** (zero regression): full suite 500/500 (417 pre-existing pass unchanged).
+- **SC-006** (governed exposure): 3 fields selectable (100-row limit), is-null on
+  resolution_notes = 250 open tickets, 100% of write attempts rejected with zero DB
+  changes (T019-T021).
+- **SC-007** (human gate): T014 approved by Pal Majoros 2026-10-13 (commit c09cfdb)
+  after per-category review (all 5 categories, open+closed); import enforced
+  `human_review.approved == true`.
+
+## Known limitations (final)
+
+- llama.cpp build version is unreported by the endpoint (recorded as such).
+- Byte-identical cross-environment regeneration is NOT claimed (spec Assumptions):
+  governance = strict per-entry validation + deterministic suite + artifact pinning
+  with checksums + full-version regeneration only.
+- The all-open-composition failure mode (model confuses ticket_ids across similar
+  open tickets) may recur on regeneration; batch-size 4 + checkpoint/resume mitigated
+  it this run; zero-tolerance acceptance caught every case.
+- Category-consistency is a deterministic lexicon check (mechanical topic
+  consistency), not literary quality judgment — deep review was the human MANUAL GATE.
+- GraphJin v3 (default_block + public_tables) gates TABLES; the policies.yml columns
+  block is declarative — column-level read restriction is not enforced by this
+  GraphJin version. The explicit allowlist is accurate; writes remain blocked at both
+  the GraphJin access layer and the PostgreSQL read-only role.
+
+## Feature status
+
+**COMPLETE.** All 24 tasks done; the T014 MANUAL GATE was approved by the human;
+the full validation gate is green (500/500). The three synthetic text fields are
+generated, validated, pinned, imported, and exposed read-only through the governed
+query layer, ready for the follow-up hybrid-search feature.
