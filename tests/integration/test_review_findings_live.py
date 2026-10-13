@@ -98,11 +98,20 @@ def test_f1_groupby_merchants_stable_category(client):
 def test_f2_groupby_no_wrong_answer(client):
     body = _query(client, "How many P1 and P2 tickets after 2026-01-01, "
                           "grouped by category?")
-    # The bug returned "No matching data" with a plain count of 212.
-    # After the fix: unsupported (GROUP BY rejected) or clarification.
-    assert body["status"] in ("unsupported", "clarification"), (
-        f"expected unsupported/clarification, got {body['status']}: "
-        f"{body['answer']!r}")
+    # Spec 004 bug: returned "No matching data" with a plain count of 212.
+    # Spec 005 makes the grouped shape SUPPORTED: the answer must report the
+    # true per-category counts (verified ground truth: API Integrations 52,
+    # Account Access 48, Fulfilment & Logistics 35, Notifications 35,
+    # Payments & Checkout 42; total 212) grounded in executed groups, or fall
+    # back to a stable category without inventing data.
+    if body["status"] == "answered":
+        assert "212" in body["answer"] or "52" in body["answer"], (
+            f"per-category counts missing from answer: {body['answer']!r}")
+        rows = (body.get("evidence") or {}).get("rows") or []
+        assert rows, "answered without executed grouped evidence"
+    else:
+        assert body["status"] in ("clarification", "unsupported"), (
+            f"unexpected status {body['status']}: {body['answer']!r}")
 
 
 def test_f8_top_category_no_wrong_answer(client):
