@@ -200,12 +200,20 @@ def test_f9_merchant_name_filter_unsupported(client):
         assert "no" in body["answer"].lower() or "0" in body["answer"]
 
 
-def test_f10_null_agent_filter_unsupported(client):
+def test_f10_null_agent_filter_supported(client):
     body = _query(client, "Show tickets where assigned agent is missing")
-    # No is-null operator: must be a stable category, never a DB error from
-    # an invalid integer literal.
-    assert body["status"] in ("answered", "unsupported", "clarification"), (
-        f"unexpected status {body['status']}: {body['answer']!r}")
+    # Spec 004 bug: invalid integer literal -> DB error. Spec 005 adds the
+    # is-null operator: the question is answered with the governed 100-row
+    # page of the 250 agent-less tickets, or falls back to a stable category
+    # -- never a DB error.
+    if body["status"] == "answered":
+        rows = (body.get("evidence") or {}).get("rows") or []
+        assert rows, "answered without executed evidence rows"
+        assert all(r.get("assigned_agent_id") is None for r in rows), (
+            "answered rows must all have a null assigned_agent_id")
+    else:
+        assert body["status"] in ("unsupported", "clarification"), (
+            f"unexpected status {body['status']}: {body['answer']!r}")
 
 
 # ---------------------------------------------------------------------------
