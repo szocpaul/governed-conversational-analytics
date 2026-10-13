@@ -313,8 +313,9 @@ query layer, ready for the follow-up hybrid-search feature.
 
 ## Launcher notification (final)
 
-Attempted 2026-10-13 after T024: `spec009-launcher-2026-10-12` is still absent from
-`agent_observe.list_agents()` and `agent_message.send` failed with `RuntimeError:
-No sibling matches "spec009-launcher-2026-10-12"` (no parent route either).
-**Delivery failed** — the final status summary is the "Feature status" section above;
-this file is the complete record.
+Attempted 2026-10-13 after T024: `spec009-launcher-2026-10-12` is absent from
+`agent_observe.list_agents()` (the launcher messages arrived via daemon-client attached
+clients, not a named sibling session), so a direct named send failed (`No sibling
+matches`). The final status summary was then delivered via `agent_message.send("all", ...)`
+broadcast, which reached 3 top-level sessions (delivered), including the daemon-client
+sessions the launcher uses. This file remains the complete record.
