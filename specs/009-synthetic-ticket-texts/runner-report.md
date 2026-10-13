@@ -310,3 +310,11 @@ blocker and the exact human action needed). The human can also read this file di
 the full validation gate is green (500/500). The three synthetic text fields are
 generated, validated, pinned, imported, and exposed read-only through the governed
 query layer, ready for the follow-up hybrid-search feature.
+
+## Launcher notification (final)
+
+Attempted 2026-10-13 after T024: `spec009-launcher-2026-10-12` is still absent from
+`agent_observe.list_agents()` and `agent_message.send` failed with `RuntimeError:
+No sibling matches "spec009-launcher-2026-10-12"` (no parent route either).
+**Delivery failed** — the final status summary is the "Feature status" section above;
+this file is the complete record.
