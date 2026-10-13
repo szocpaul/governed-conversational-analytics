@@ -58,6 +58,18 @@
   with a single recorded batch config.
 - T012 attempt 3 (v3 full regeneration, --fresh --batch-size 4): STARTED
   2026-10-13 morning. 515 batches expected. Heartbeat tracking.
+- T012 attempt 3 continued: reached 1848/2057, then batch [849049..849052]
+  failed deterministically (3 identical retries): the model returned 5 entries
+  for the 4-ticket batch (one ticket_id duplicated; sets equal, counts differ).
+  FAILURE PATTERN (recorded per launcher note): the deterministic failures are
+  an ALL-OPEN-COMPOSITION family — v2 failed on an all-open 5-ticket batch
+  [849031..849035], v3 on an all-open 4-ticket batch [849049..849052]. In both
+  cases every ticket in the batch is open (resolution_notes must be null) and
+  the model confuses ticket_ids across the similar open tickets. Checkpoint
+  intact at 1848/2057 (0 duplicates, max id 849048). Resuming from checkpoint
+  at the same batch-size 4 (only ~52 batches remain); if the SAME batch fails
+  deterministically again, STOP AND REPORT to the launcher before any further
+  batch-config change (a third full regeneration needs a human decision).
 
 ## Validation commands and results
 
