@@ -38,8 +38,21 @@ CREATE TABLE IF NOT EXISTS itsm.tickets (
     is_reopened         boolean     NOT NULL,
     is_reopen_child     boolean     NOT NULL,
     is_incident_ticket  boolean     NOT NULL,
-    csat_score          double precision CHECK (csat_score BETWEEN 0 AND 1)
+    csat_score          double precision CHECK (csat_score BETWEEN 0 AND 1),
+    -- GENERATED (feature 009, synthetic text from pinned artifact data/raw/tickets_texts.jsonl)
+    short_description   text,
+    -- GENERATED (feature 009, synthetic text from pinned artifact data/raw/tickets_texts.jsonl)
+    description         text,
+    -- GENERATED (feature 009, synthetic text from pinned artifact data/raw/tickets_texts.jsonl)
+    resolution_notes    text
 );
+
+-- GENERATED (feature 009): idempotent column adds for databases initialized
+-- before the generated columns existed. Fresh setups get them from the CREATE
+-- TABLE above; these keep existing databases convergent without a reset.
+ALTER TABLE itsm.tickets ADD COLUMN IF NOT EXISTS short_description text;
+ALTER TABLE itsm.tickets ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE itsm.tickets ADD COLUMN IF NOT EXISTS resolution_notes text;
 
 CREATE INDEX IF NOT EXISTS idx_tickets_merchant_id       ON itsm.tickets (merchant_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_assigned_agent_id ON itsm.tickets (assigned_agent_id);
