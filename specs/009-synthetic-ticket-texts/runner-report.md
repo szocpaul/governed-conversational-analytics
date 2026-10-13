@@ -230,3 +230,12 @@ limit or truncating evidence would mask an environment change by altering approv
 behavior). **Human action needed**: restart the llama.cpp server with the approved
 large context (e.g. -c 262144 / the prior 65536), then re-run `pytest -q` — F10
 should pass as it did at baseline. T022 will be re-verified after that.
+
+## Launcher notification (post-US3)
+
+Attempted 2026-10-13 after T021: `agent_observe.list_agents()` still does NOT list
+`spec009-launcher-2026-10-12`; `agent_message.send(..., receiver_name=
+'spec009-launcher-2026-10-12')` failed with `RuntimeError: No sibling matches`, and
+there is no parent route (`No parent matches the current agent`). **Delivery failed** —
+the status summary is retained here (see the T022 section above for the environmental
+blocker and the exact human action needed). The human can also read this file directly.
