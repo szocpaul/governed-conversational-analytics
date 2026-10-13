@@ -82,7 +82,7 @@ zero database changes.
 
 - [x] T022 Run the full validation gate set from `specs/009-synthetic-ticket-texts/quickstart.md` steps 1-8: `pytest -q` green (all 417 pre-existing + new tests, SC-005); full artifact validation exit 0; governed read checks pass. Fix any failure at its source.
 - [x] T023 Verify artifact pinning (SC-001): recompute SHA-256 of `data/raw/tickets_texts.jsonl` and confirm it equals `texts-manifest.json.artifact_sha256` and the `generated_texts` record in `artifacts/import-manifest.json`; confirm the approved artifact is committed to Git and byte-stable across a fresh checkout/read.
-- [ ] T024 Complete `specs/009-synthetic-ticket-texts/runner-report.md` per the AGENTS.md Required Final Report: completed/blocked task IDs, files changed, commits, exact pinned versions, validation commands with exact results, live-generation summary (batches, retries, runtime as observational), security-effect and disclosure results, MANUAL GATE evidence (reviewer, date), known limitations.
+- [x] T024 Complete `specs/009-synthetic-ticket-texts/runner-report.md` per the AGENTS.md Required Final Report: completed/blocked task IDs, files changed, commits, exact pinned versions, validation commands with exact results, live-generation summary (batches, retries, runtime as observational), security-effect and disclosure results, MANUAL GATE evidence (reviewer, date), known limitations.
 
 ## Dependencies
 
