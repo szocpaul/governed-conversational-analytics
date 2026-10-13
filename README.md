@@ -102,7 +102,7 @@ app/web/                    # demo UI (gallery, overview, guided input)
 evaluation/                 # datasets, metrics, runner, comparison gate
 tests/                      # unit, contract, integration, security, evaluation gates
 artifacts/                  # provenance, baselines, evaluation results
-specs/                      # Spec Kit artifacts per feature (001-008)
+specs/                      # Spec Kit artifacts per feature (001-009)
 ```
 
 ## License & attribution
