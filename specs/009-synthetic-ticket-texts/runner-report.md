@@ -46,9 +46,18 @@
   sanity sample passed with 0 violations.
 - T012 attempt 2 (v2 full regeneration, --fresh): STARTED 2026-10-12 ~22:55 UTC.
   PARKED FOR THE NIGHT by human decision (LLM shut down); checkpoint intact at
-  55 entries. RESUME TOMORROW on human 'continue': re-run
-  scripts/generate_ticket_texts.py (resumes from checkpoint), then T013
-  validation, then STOP at T014 MANUAL GATE.
+  55 entries. RESUMED next morning on human 'continue'.
+- T012 attempt 2 continued: reached 1830/2057, then batch [849031..849035]
+  failed DETERMINISTICALLY (3 identical retries): the model duplicates ticket
+  849033 and omits 849035 (a 2FA Reset ticket) in this specific all-open
+  5-ticket composition at temperature 0. Verified: the same region succeeds at
+  batch-size 4, and neighboring all-open 5-ticket batches succeed at size 5, so
+  this is a composition-specific model confusion, not a systematic failure.
+  Decision (within the spec's approved batch-size tuning, 'about 5', recorded
+  in the manifest): discard the pre-approval v2 checkpoint and regenerate FULLY
+  with a single recorded batch config.
+- T012 attempt 3 (v3 full regeneration, --fresh --batch-size 4): STARTED
+  2026-10-13 morning. 515 batches expected. Heartbeat tracking.
 
 ## Validation commands and results
 
