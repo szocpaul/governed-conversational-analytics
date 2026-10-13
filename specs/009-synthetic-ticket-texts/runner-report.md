@@ -157,3 +157,13 @@ and ticks `- [ ] T014` in `specs/009-synthetic-ticket-texts/tasks.md`.
 Only after that may US2 (T015-T018: schema columns + atomic import) and US3
 (T019-T021: GraphJin read-only exposure) begin — the import script enforces
 `human_review.approved == true` and refuses otherwise.
+
+## Launcher notification
+
+Attempted 2026-10-13 after T013 passed: `agent_observe.list_agents()` does NOT
+list `spec009-launcher-2026-10-12` as an active sibling, and
+`agent_message.send(..., receiver_name='spec009-launcher-2026-10-12')` failed
+with `RuntimeError: No sibling matches "spec009-launcher-2026-10-12"`.
+**Delivery failed** — the named launcher sibling is absent/inactive. This
+report file is retained as the complete record; the human can read the MANUAL
+GATE instructions directly from the section above.
