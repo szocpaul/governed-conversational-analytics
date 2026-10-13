@@ -1,6 +1,6 @@
 # Runner Report: Feature 009 — Synthetic Ticket Texts
 
-**Status**: AUTOMATABLE WORK COMPLETE (T001-T013) — STOPPED AT MANUAL GATE T014
+**Status**: T001-T021 COMPLETE; T022 BLOCKED (environmental, see below); T023-T024 pending
 **Date**: 2026-10-13
 **Executor**: Prime Agent (autonomous spec runner)
 
@@ -17,7 +17,7 @@
 
 ## Completed task IDs
 
-T001, T002, T003, T004, T005, T006, T007, T008, T009, T010, T011, T012, T013.
+T001-T013 (US1), T014 (MANUAL GATE approved by human Pal Majoros 2026-10-13, commit c09cfdb), T015, T016, T017, T018 (US2), T019, T020, T021 (US3).
 
 ## Blocked / not-started task IDs
 
@@ -167,3 +167,66 @@ with `RuntimeError: No sibling matches "spec009-launcher-2026-10-12"`.
 **Delivery failed** — the named launcher sibling is absent/inactive. This
 report file is retained as the complete record; the human can read the MANUAL
 GATE instructions directly from the section above.
+
+
+## US2 (import) and US3 (exposure) completion — post-GATE
+
+After the human approved T014 (commit c09cfdb):
+
+- **T015**: `tests/integration/test_ticket_texts_import.py` written first, observed
+  FAIL (7 failed, 1 trivially passing). Commit 0935e3e.
+- **T016**: `database/schema.sql` — itsm.tickets gains short_description/description/
+  resolution_notes (text, nullable, GENERATED comments) in CREATE TABLE + 3 idempotent
+  `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`. Verified via initialize_database.py.
+  Commit 56222d5.
+- **T017**: `scripts/import_dataset.py` — loads the approved artifact inside the SAME
+  single transaction: verifies artifact SHA-256 vs texts-manifest, coverage == pinned
+  2057, NULL rule vs tickets.csv, and `human_review.approved == true` (all BEFORE any
+  DB write; any failure = full rollback); UPDATEs the 3 generated columns per ticket;
+  post-import count + NULL-rule checks in-transaction; additive `generated_texts` key
+  in artifacts/import-manifest.json (existing keys untouched). TICKETS_TEXTS_PATH /
+  TEXTS_MANIFEST_PATH env overrides = test seam for negative paths. Texts import is
+  skipped when the artifact is absent (feature-001 fresh-checkout behavior intact).
+  T015 8/8 pass; feature-001 import+init 16/16 green. Commit a0c46ad.
+- **T018**: reset_database + initialize_database + import_dataset reproduces the full
+  state (2057 tickets, 3 columns populated, NULL rule 250/1807); feature-001
+  discipline 16/16 green. Commit 9a36ee1.
+- **T019**: `tests/integration/test_graphjin_ticket_texts.py` — select of the 3 fields
+  (100-row limit respected), is-null on resolution_notes (open tickets, DB cross-check
+  = 250), combined priority+field filter, write attempts rejected with zero DB changes.
+  6/6 pass. Commit 5d2a7f1.
+- **T020**: `graphjin/config/policies.yml` tickets allowlist gains exactly the 3 columns
+  (# GENERATED feature 009); no other config change (dev.yml untouched). GraphJin
+  restarted; test_graphjin_queries 6/6 green. Commit 5d2a7f1.
+  NOTE: GraphJin v3 with default_block + public_tables gates TABLES; the columns block
+  is declarative — the new columns were already servable once imported. The explicit
+  allowlist is now accurate; column-level read restriction is not enforced by this
+  GraphJin version (recorded as a known limitation).
+- **T021**: `pytest tests/security/ -q` = **94/94 pass** (read-only enforcement,
+  authorization, limits/timeouts, redaction) with the 3 columns exposed. Commit a8971dd.
+
+## T022 — full pytest gate: BLOCKED (environmental, NOT a code regression)
+
+`pytest -q` = **499 passed, 1 failed**. The single failure is
+`tests/integration/test_review_findings_live.py::test_f10_null_agent_filter_unsupported`,
+which returns `dependency_error`: the answer-program request is 17361 tokens but the
+LLM endpoint now reports **n_ctx = 8192** (verified via /props and /v1/models meta).
+
+This is an ENVIRONMENT CHANGE, not a feature-009 regression:
+- At the T001 baseline (2026-10-12 ~19:33) the endpoint reported **n_ctx = 65536**
+  (verified via /props) and F10 passed (417/417).
+- Feature 009 does NOT touch the query/answer path (query_program, answer_program,
+  optimized_program, llm.py all unchanged); the F10 query selects only the 19 original
+  fields (no generated text columns) with limit 100 — identical evidence size to baseline.
+- The pipeline is otherwise healthy: "Show 5 tickets where assigned agent is missing"
+  -> answered; "How many tickets have no assigned agent?" -> answered (250). Only the
+  100-full-row F10 question overflows the reduced 8192 context.
+- Root cause: the llama.cpp server was restarted with a smaller per-slot context
+  (8192) after the baseline; the approved configuration uses a much larger context
+  (the operator runs -c 262144).
+
+Per the stop-and-report discipline I did NOT improvise a workaround (reducing the
+limit or truncating evidence would mask an environment change by altering approved
+behavior). **Human action needed**: restart the llama.cpp server with the approved
+large context (e.g. -c 262144 / the prior 65536), then re-run `pytest -q` — F10
+should pass as it did at baseline. T022 will be re-verified after that.
