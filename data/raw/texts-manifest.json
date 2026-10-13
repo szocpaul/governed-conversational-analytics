@@ -37,9 +37,9 @@
     ]
   },
   "human_review": {
-    "approved": false,
-    "reviewer": null,
-    "reviewed_at": null,
-    "sample_notes": null
+    "approved": true,
+    "reviewer": "Pal Majoros",
+    "reviewed_at": "2026-10-13T09:10:04Z",
+    "sample_notes": "Per-category sample review (5 categories, open+closed) via specs/009-synthetic-ticket-texts/review-sample.md; NULL rule, category consistency, priority tone verified. Gate approved by human on 2026-10-13."
   }
 }
