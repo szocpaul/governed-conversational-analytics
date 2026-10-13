@@ -1,92 +1,159 @@
 # Runner Report: Feature 009 — Synthetic Ticket Texts
 
-**Status**: IN PROGRESS (automatable work up to MANUAL GATE T014)
-**Date**: 2026-10-12
+**Status**: AUTOMATABLE WORK COMPLETE (T001-T013) — STOPPED AT MANUAL GATE T014
+**Date**: 2026-10-13
 **Executor**: Prime Agent (autonomous spec runner)
 
 ## Pre-implementation baseline (T001)
 
 - Git commit at start: `fae42ae5f22f3a42c3599e3e87bb05401a2fb5c8` (branch `main`)
-- Working-tree state at start: clean except untracked `specs/009-synthetic-ticket-texts/`
-  (approved design artifacts). Note: the baseline `pytest -q` run itself refreshes
-  `artifacts/import-manifest.json`'s `import.imported_at` timestamp (known,
-  pre-existing behavior of the feature-001 integration fixture; same as commit 0755f6b).
+- Working-tree state at start: clean except untracked `specs/009-synthetic-ticket-texts/`.
 - Baseline test result: `pytest -q` -> **417 passed, 0 failed** (115.99s), matching the
-  expected pre-feature baseline.
+  expected pre-feature baseline. (The baseline run refreshes
+  `artifacts/import-manifest.json`'s `import.imported_at` — known pre-existing
+  fixture behavior, committed in 2dba29c.)
 - Interpreter: `/usr/bin/python3` (Python 3.14.4)
-- Pinned deps (already installed, none added): dspy==3.4.0, pydantic==2.12.5,
-  httpx==0.28.1, psycopg==3.3.6, pytest==9.0.3
-- Stack: PostgreSQL 16.10-alpine + GraphJin 3.21.6 via `sudo -n docker compose`
-  (both containers up and healthy).
+- Stack: PostgreSQL 16.10-alpine + GraphJin 3.21.6 via `sudo -n docker compose`.
 
-## Task log
+## Completed task IDs
 
-- T001-T003 (Setup): baseline recorded (417 passed), preflight OK (exact model ID,
-  seed 20261012 accepted), checkpoint gitignore added. Commit 2dba29c.
-- T004-T006 (Foundational tests): 68 failing tests written and observed failing
-  (module-missing ERRORs). Commit 3febfbb.
-- T007-T009 (US1 implementation): text_generation.py (14/14), validate_ticket_texts.py
-  (44/44), generate_ticket_texts.py (10/10); unit suite 152 passed. Commit 9e94fa7.
-- T010 (live sample 10): exit 0, 2 batches, 27s, 0 retries. First run had 1
-  english-only violation (headline-style fragment without a function word);
-  fixed AT SOURCE in the GenerateTicketTexts docstring (require complete
-  sentences with articles) and regenerated: 0 violations, all 10 entries
-  category-consistent, priority-appropriate, NULL rule respected.
-- T011 (live resume 25): started --sample 25, killed after 4 batches (20
-  checkpointed); resumed run loaded 20 accepted ids, processed only the
-  remaining batch, completed 25/25 unique entries in CSV order; checkpoint
-  deleted; 0 violations.
-- T012 attempt 1: SIGTERM at 835/2057 (external, ~55 min); checkpoint intact;
-  resumed after endpoint restart; completed 412/412 (2057 entries) but T013
-  validation found 128 violations (lengths 2, english-only 31,
-  category-consistency 95) -> fixed AT SOURCE (commit aa9f499: word-boundary
-  exclusive matching, required-keyword substring matching, exclusive check
-  scoped to own-topic-absent contradictions, resolution_notes complete-sentence
-  instruction, short_description length guard in acceptance) and 25-ticket
-  sanity sample passed with 0 violations.
-- T012 attempt 2 (v2 full regeneration, --fresh): STARTED 2026-10-12 ~22:55 UTC.
-  PARKED FOR THE NIGHT by human decision (LLM shut down); checkpoint intact at
-  55 entries. RESUMED next morning on human 'continue'.
-- T012 attempt 2 continued: reached 1830/2057, then batch [849031..849035]
-  failed DETERMINISTICALLY (3 identical retries): the model duplicates ticket
-  849033 and omits 849035 (a 2FA Reset ticket) in this specific all-open
-  5-ticket composition at temperature 0. Verified: the same region succeeds at
-  batch-size 4, and neighboring all-open 5-ticket batches succeed at size 5, so
-  this is a composition-specific model confusion, not a systematic failure.
-  Decision (within the spec's approved batch-size tuning, 'about 5', recorded
-  in the manifest): discard the pre-approval v2 checkpoint and regenerate FULLY
-  with a single recorded batch config.
-- T012 attempt 3 (v3 full regeneration, --fresh --batch-size 4): STARTED
-  2026-10-13 morning. 515 batches expected. Heartbeat tracking.
-- T012 attempt 3 continued: reached 1848/2057, then batch [849049..849052]
-  failed deterministically (3 identical retries): the model returned 5 entries
-  for the 4-ticket batch (one ticket_id duplicated; sets equal, counts differ).
-  FAILURE PATTERN (recorded per launcher note): the deterministic failures are
-  an ALL-OPEN-COMPOSITION family — v2 failed on an all-open 5-ticket batch
-  [849031..849035], v3 on an all-open 4-ticket batch [849049..849052]. In both
-  cases every ticket in the batch is open (resolution_notes must be null) and
-  the model confuses ticket_ids across the similar open tickets. Checkpoint
-  intact at 1848/2057 (0 duplicates, max id 849048). Resuming from checkpoint
-  at the same batch-size 4 (only ~52 batches remain); if the SAME batch fails
-  deterministically again, STOP AND REPORT to the launcher before any further
-  batch-config change (a third full regeneration needs a human decision).
+T001, T002, T003, T004, T005, T006, T007, T008, T009, T010, T011, T012, T013.
 
-## Validation commands and results
+## Blocked / not-started task IDs
 
-(filled in at the end)
+- **T014 (MANUAL GATE)**: NOT ticked — human data-quality review required (see below).
+- T015-T024 (US2 import, US3 exposure, polish): NOT STARTED — hard-blocked on T014
+  per the approved dependency graph (US2 consumes the approved artifact + the gate).
 
-## Live-generation summary
+## Files changed
 
-(filled in after T010-T013)
+New:
+- `app/ai/text_generation.py` (typed DSPy program, PROMPT_VERSION="1")
+- `scripts/generate_ticket_texts.py`, `scripts/validate_ticket_texts.py`
+- `data/raw/tickets_texts.jsonl` (2057-line pinned artifact, committed)
+- `data/raw/texts-manifest.json` (provenance manifest, committed)
+- `artifacts/llm-preflight-009.json`
+- `tests/unit/test_text_generation_program.py` (14 tests)
+- `tests/unit/test_ticket_texts_validation.py` (45 tests)
+- `tests/unit/test_ticket_texts_checkpoint.py` (10 tests)
+- `specs/009-synthetic-ticket-texts/runner-report.md` + approved design artifacts
+
+Modified:
+- `.gitignore` (transient checkpoint rule)
+- `artifacts/import-manifest.json` (imported_at refresh from baseline fixture only)
+
+Untouched (per scope): `evaluation/`, pinned `data/raw/*.csv`, `database/schema.sql`,
+`graphjin/config/policies.yml`, `scripts/import_dataset.py` (US2 files — gated).
+
+## Commits created (on `main`, not pushed)
+
+```
+ecd0189 feat(009): T012-T013 full generation + validation PASSED
+340e8b9 docs(009): record deterministic batch failure + batch-size-4 regeneration decision
+2330edf docs(009): park for the night - v2 regeneration checkpointed at 55 entries
+aa9f499 fix(009): T013 source fixes after first validation failure
+c6c415b feat(009): T010-T011 live sample + resume verification
+9e94fa7 feat(009): T007-T009 generation program, validation suite, generator CLI
+8b8c43f docs(009): approved design artifacts
+3febfbb test(009): T004-T006 failing unit tests
+2dba29c feat(009): T001-T003 baseline, LLM preflight, checkpoint gitignore
+```
+
+## Exact pinned versions
+
+- Python 3.14.4 (`/usr/bin/python3`)
+- dspy 3.4.0 (lm15 engine), pydantic 2.12.5, httpx 0.28.1, psycopg 3.3.6, pytest 9.0.3
+- PostgreSQL 16.10-alpine, GraphJin 3.21.6 (pinned images)
+- Exact API model ID: `models\Qwen3.8-27B-UD-Q4_K_M.gguf` (verified via GET /v1/models)
+- llama.cpp version: **unreported** (endpoint exposes no build version via
+  /v1/models, /props, or /health — checked 2026-10-12)
+- No new dependencies installed.
+
+## Validation commands and exact results
+
+| Command | Result |
+|---|---|
+| `pytest -q` (baseline, T001) | **417 passed, 0 failed** |
+| `pytest tests/unit/ -q` (final) | **153 passed, 0 failed** (84 pre-existing + 69 new) |
+| `python scripts/validate_ticket_texts.py` (T013) | **exit 0 — VALIDATION PASSED: all 7 checks, 2057 entries** |
+| `python scripts/generate_ticket_texts.py --sample 10` (T010) | exit 0, 2 batches, 0 violations |
+| `python scripts/generate_ticket_texts.py --sample 25` + kill + resume (T011) | exit 0, resume from checkpoint, 25/25 unique, 0 violations |
+| `python scripts/generate_ticket_texts.py --fresh --batch-size 4` (T012, v3) | exit 0, 515 batches, 2057/2057 |
+
+T013 validation detail (all 7 checks pass on 2057/2057): schema+coverage
+(every ticket exactly once), non-empty (no empty/slot-marker fields), lengths
+(short_description 1 sentence <=100, description 2-4 sentences <=600,
+resolution_notes 1-3 sentences <=450), english-only, secrets-pii-scan (zero
+credential/PII patterns), category-consistency (20-pair lexicon), null-rule
+(resolution_notes NULL exactly for the 250 open tickets, present for 1807 closed).
+Result recorded in `data/raw/texts-manifest.json.validation`; artifact SHA-256
+`72c96e92...f0ed` verified against the manifest.
+
+## Live-generation summary (observational)
+
+- **v1 full run** (batch-size 5): SIGTERM'd externally at 835/2057 (~55 min);
+  resumed, completed 412/412, but T013 found 128 violations -> fixed AT SOURCE
+  (commit aa9f499) and regenerated.
+- **v2 full run** (batch-size 5, --fresh): parked overnight at 55/2057 (human
+  decision); resumed, reached 1830/2057, then batch [849031..849035] failed
+  DETERMINISTICALLY (model duplicates 849033, drops 849035, a 2FA Reset ticket,
+  in an all-open composition at temperature 0). Discarded (pre-approval).
+- **v3 full run** (batch-size 4, --fresh): reached 1848/2057, batch
+  [849049..849052] failed (5 entries for a 4-ticket all-open batch, one id
+  duplicated); did NOT reproduce on resume. Completed 515/515, 2057/2057.
+- Batch config actually used (recorded in manifest): batch_size 4, max_retries 2,
+  batches 515, retries_used 0 (final v3 segments).
+- Runtime (observational only): v3 first segment ~4943s (1848 tickets) + resume
+  segment ~402s (209 tickets) ~= 89 min total generation wall time.
+- Seed 20261012, temperature 0, cache false, prompt_version "1".
+
+### Known failure mode (recorded per launcher note)
+
+The deterministic batch failures are an **all-open-composition family**: when
+every ticket in a batch is open (all resolution_notes must be null), the model
+occasionally confuses ticket_ids across the similar open tickets (duplicating
+one id, dropping another). Observed at batch-size 5 ([849031..849035],
+deterministic) and batch-size 4 ([849049..849052], did not reproduce on resume).
+Mitigation used: batch-size tuning within the spec's approved 'about 5' range +
+checkpoint/resume. The per-batch zero-tolerance acceptance caught every case;
+no invalid entry ever reached the artifact.
 
 ## Security-effect and disclosure results
 
-(filled in after T021 where applicable; US1 never touches the database)
+US1 (generation) never touches the database — the generator writes only files.
+The secrets/PII scan (check 5) found zero credential-like or personal-data
+patterns across all 2057 entries. No endpoint details, credentials, or prompts
+were written to committed files or user-facing output (the manifest records
+only the model ID, non-secret versions, seed, and hashes). US2/US3 security
+re-verification (read-only enforcement, write rejection) is gated behind T014.
 
 ## Known limitations
 
-(filled in at the end)
+- llama.cpp build version is unreported by the endpoint (recorded as such).
+- Byte-identical cross-environment regeneration is NOT claimed (spec
+  Assumptions): governance = strict per-entry validation + deterministic suite
+  + artifact pinning with checksums + full-version regeneration only.
+- The all-open-composition failure mode (above) may recur on regeneration;
+  batch-size 4 + resume mitigated it this run.
+- Category-consistency is a deterministic lexicon check (mechanical topic
+  consistency), not literary quality judgment — deep review is the human gate.
 
-## MANUAL GATE (T014) — decision required
+## MANUAL GATE (T014) — exact human decision required
 
-(filled in at the stop point)
+The artifact `data/raw/tickets_texts.jsonl` (2057 entries) passed the full
+deterministic validation suite (exit 0) and is committed with its provenance
+manifest. **The human must now perform the data-quality review** (quickstart
+step 5): review per-category samples covering **all 5 categories** (e.g. ~5
+tickets each, including open AND closed tickets) and judge text quality
+(realism, coherence, category fit, priority-appropriate tone).
+
+If satisfied, the HUMAN (never an agent) sets in `data/raw/texts-manifest.json`:
+```json
+"human_review": {"approved": true, "reviewer": "<name>",
+  "reviewed_at": "<ISO-8601>", "sample_notes": "<notes>"}
+```
+and ticks `- [ ] T014` in `specs/009-synthetic-ticket-texts/tasks.md`.
+
+Only after that may US2 (T015-T018: schema columns + atomic import) and US3
+(T019-T021: GraphJin read-only exposure) begin — the import script enforces
+`human_review.approved == true` and refuses otherwise.
