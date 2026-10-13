@@ -119,6 +119,84 @@ def verify_checksums(manifest):
                 "Raw files are immutable; refusing to import modified source.")
 
 
+# ---------------------------------------------------------------------------
+# Feature 009: generated ticket texts (additive columns, human-approved artifact)
+# ---------------------------------------------------------------------------
+
+TEXTS_ARTIFACT_PATH = os.environ.get(
+    "TICKETS_TEXTS_PATH", os.path.join(RAW_DIR, "tickets_texts.jsonl"))
+TEXTS_MANIFEST_PATH = os.environ.get(
+    "TEXTS_MANIFEST_PATH", os.path.join(RAW_DIR, "texts-manifest.json"))
+
+GENERATED_COLUMNS = ("short_description", "description", "resolution_notes")
+
+
+def load_generated_texts(tickets_raw):
+    """Load and fully verify the pinned, human-approved generated artifact.
+
+    Returns (entries_by_id, texts_manifest) or None when the artifact is
+    absent (feature-001-only checkout: texts import is skipped). Any
+    verification failure raises ImportValidationError -> full rollback.
+    """
+    if not os.path.exists(TEXTS_ARTIFACT_PATH) or not os.path.exists(TEXTS_MANIFEST_PATH):
+        return None
+    with open(TEXTS_MANIFEST_PATH, encoding="utf-8") as fh:
+        texts_manifest = json.load(fh)
+
+    # (a) artifact SHA-256 must equal the manifest's recorded checksum.
+    actual_sha = sha256_file(TEXTS_ARTIFACT_PATH)
+    recorded_sha = texts_manifest.get("artifact_sha256")
+    if actual_sha != recorded_sha:
+        raise ImportValidationError(
+            f"generated texts artifact SHA-256 mismatch: manifest records "
+            f"{recorded_sha}, file is {actual_sha}. Refusing to import a "
+            f"modified or unverified artifact.")
+
+    # (d) human data-quality approval (MANUAL GATE) must be recorded.
+    human_review = texts_manifest.get("human_review") or {}
+    if human_review.get("approved") is not True:
+        raise ImportValidationError(
+            "generated texts artifact has no recorded human approval "
+            "(human_review.approved != true). The MANUAL GATE is required "
+            "before import; refusing to import an unreviewed artifact.")
+
+    entries = {}
+    with open(TEXTS_ARTIFACT_PATH, encoding="utf-8") as fh:
+        for lineno, line in enumerate(fh, start=1):
+            if not line.strip():
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ImportValidationError(
+                    f"generated texts artifact line {lineno}: invalid JSON: {exc}")
+            entries[obj["ticket_id"]] = obj
+
+    # (b) ticket_id coverage must be exactly the pinned set.
+    pinned_ids = {int(r["ticket_id"]) for r in tickets_raw}
+    got_ids = set(entries)
+    if got_ids != pinned_ids:
+        missing = sorted(pinned_ids - got_ids)[:5]
+        extra = sorted(got_ids - pinned_ids)[:5]
+        raise ImportValidationError(
+            f"generated texts coverage mismatch: missing={missing} extra={extra} "
+            f"(expected exactly the pinned {len(pinned_ids)} ticket_ids)")
+
+    # (c) NULL rule: resolution_notes null exactly for open tickets.
+    open_by_id = {int(r["ticket_id"]): not r["closed_at"].strip() for r in tickets_raw}
+    for tid, obj in entries.items():
+        notes = obj.get("resolution_notes")
+        if open_by_id[tid] and notes is not None:
+            raise ImportValidationError(
+                f"generated texts ticket {tid}: resolution_notes present for an "
+                f"open ticket (must be null)")
+        if not open_by_id[tid] and notes is None:
+            raise ImportValidationError(
+                f"generated texts ticket {tid}: resolution_notes null for a "
+                f"closed ticket (must be present)")
+    return entries, texts_manifest
+
+
 def main():
     with open(MANIFEST_PATH, encoding="utf-8") as fh:
         manifest = json.load(fh)
@@ -168,6 +246,10 @@ def main():
             parse_float(r["csat_score"]),
         ))
 
+    # Feature 009: load + verify the generated texts BEFORE opening the
+    # transaction so any failure aborts before any database write.
+    generated = load_generated_texts(tickets_raw)
+
     conn = psycopg.connect(
         host=POSTGRES_HOST, port=POSTGRES_PORT, user=POSTGRES_USER,
         password=POSTGRES_PASSWORD, dbname=POSTGRES_DB, connect_timeout=5)
@@ -209,6 +291,22 @@ def main():
                     "csat_score = EXCLUDED.csat_score",
                     tickets)
 
+                # Feature 009: upsert the three generated columns per ticket in
+                # the SAME single transaction (generated columns only). The
+                # tickets were upserted above, so every ticket_id is present;
+                # a plain UPDATE of the generated columns is the correct upsert.
+                if generated is not None:
+                    entries, _texts_manifest = generated
+                    text_rows = [
+                        (e["short_description"], e["description"], e["resolution_notes"], tid)
+                        for tid, e in entries.items()
+                    ]
+                    cur.executemany(
+                        "UPDATE itsm.tickets SET short_description = %s, "
+                        "description = %s, resolution_notes = %s "
+                        "WHERE ticket_id = %s",
+                        text_rows)
+
                 # Post-import validation inside the transaction.
                 cur.execute("SELECT count(*) FROM itsm.merchants")
                 n_merchants = cur.fetchone()[0]
@@ -233,6 +331,26 @@ def main():
                     "WHERE t.assigned_agent_id IS NOT NULL AND a.agent_id IS NULL")
                 if cur.fetchone()[0]:
                     raise ImportValidationError("unresolved agent foreign keys after import")
+                # Feature 009: post-import generated-columns checks inside the
+                # transaction (counts + NULL rule against tickets.csv).
+                if generated is not None:
+                    entries, _tm = generated
+                    cur.execute(
+                        "SELECT count(*) FROM itsm.tickets WHERE "
+                        "short_description IS NULL OR description IS NULL")
+                    if cur.fetchone()[0]:
+                        raise ImportValidationError(
+                            "generated columns short_description/description "
+                            "incomplete after import")
+                    open_ids = {tid for tid, r in ((int(x["ticket_id"]), x) for x in tickets_raw)
+                                if not r["closed_at"].strip()}
+                    cur.execute(
+                        "SELECT count(*) FROM itsm.tickets WHERE resolution_notes IS NULL")
+                    n_null = cur.fetchone()[0]
+                    if n_null != len(open_ids):
+                        raise ImportValidationError(
+                            f"resolution_notes NULL count {n_null} != open ticket "
+                            f"count {len(open_ids)} after import")
     except Exception:
         conn.close()
         raise
@@ -256,11 +374,29 @@ def main():
             ],
         },
     }
+    # Feature 009: additive generated_texts provenance key; existing keys untouched.
+    if generated is not None:
+        entries, texts_manifest = generated
+        manifest["generated_texts"] = {
+            "artifact_path": os.path.relpath(TEXTS_ARTIFACT_PATH, REPO_ROOT),
+            "artifact_sha256": sha256_file(TEXTS_ARTIFACT_PATH),
+            "texts_manifest_path": os.path.relpath(TEXTS_MANIFEST_PATH, REPO_ROOT),
+            "texts_manifest_sha256": sha256_file(TEXTS_MANIFEST_PATH),
+            "artifact_version": str(texts_manifest.get("artifact_version", "1")),
+            "row_count": len(entries),
+            "human_review": texts_manifest.get("human_review"),
+            "imported_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        }
+
     with open(MANIFEST_PATH, "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, indent=2)
 
     print(f"imported {len(merchants)} merchants, {len(agents)} agents, "
           f"{len(tickets)} tickets (atomic, validated)")
+    if generated is not None:
+        entries, _tm = generated
+        print(f"imported generated texts for {len(entries)} tickets "
+              f"(3 columns, human-approved artifact)")
 
 
 if __name__ == "__main__":
