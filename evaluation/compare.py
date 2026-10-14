@@ -30,6 +30,14 @@ ACCURACY_DEGRADATION_PP = 0.05  # 5 percentage points
 ROUTING_ACCURACY_THRESHOLD = 0.80
 FALSE_ROUTING_BOUND = 0.20
 
+# Feature 012 count gates (calibrated after the noise run, T012). The observed
+# run-to-run noise band for the count metrics was ZERO (temp 0, cache off; two
+# identical measured runs: count_accuracy 1.0/1.0, false_count_rate 0.0/0.0).
+# The thresholds below clear that noise band with margin and match the house
+# P1 discipline (0.80 accuracy / 0.20 false-rate bound).
+COUNT_ACCURACY_THRESHOLD = 0.80
+FALSE_COUNT_BOUND = 0.20
+
 # Metadata keys that must match for a comparable run; a change requires a new
 # baseline (US3). Secrets are never recorded.
 _COMPAT_KEYS = ["model_id", "eval_set_version"]
@@ -93,6 +101,20 @@ def compare_artifacts(baseline: dict, current: dict) -> dict:
             reasons.append(
                 f"false-routing rate {false_routing} above bound "
                 f"{FALSE_ROUTING_BOUND} (SC-004)")
+
+    # --- Feature 012 count gates ---
+    count_accuracy = _metric(current, "count_accuracy")
+    if count_accuracy is not None:
+        if count_accuracy < COUNT_ACCURACY_THRESHOLD:
+            reasons.append(
+                f"count accuracy {count_accuracy} below threshold "
+                f"{COUNT_ACCURACY_THRESHOLD} (SC-004)")
+    false_count = _metric(current, "false_count_rate")
+    if false_count is not None:
+        if false_count > FALSE_COUNT_BOUND:
+            reasons.append(
+                f"false-count rate {false_count} above bound "
+                f"{FALSE_COUNT_BOUND} (SC-006)")
 
     # --- Security: any prohibited effect or disclosure fails ---
     if (_metric(current, "prohibited_effects") or 0) > 0:
