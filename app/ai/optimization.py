@@ -109,11 +109,16 @@ def build_routing_trainset() -> list[dspy.Example]:
         if c.id in held_ids:
             raise ValueError(
                 f"held-out case {c.id!r} must not enter optimization")
-        if not c.category.startswith("route_"):
-            continue
         expected = c.expected or {}
-        route = expected.get("route")
-        if not route:
+        if c.category.startswith("route_"):
+            route = expected.get("route")
+            if not route:
+                continue
+        elif c.category == "count_content":
+            # Feature 012: a count-over-content case carries an implicit
+            # routing label — the classifier must route it to content_count.
+            route = "content_count"
+        else:
             continue
         ex = dspy.Example(
             case_id=c.id,

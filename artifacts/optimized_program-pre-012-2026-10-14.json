@@ -1,0 +1,165 @@
+{
+  "classify": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "question": "Which tickets describe shoppers who can't finish paying because their card keeps getting turned down?",
+        "category": "content_about",
+        "rationale": "The question asks to find tickets based on the semantic description of the issue (payment failures due to card rejection) rather than a structured column value or a specific ticket ID."
+      },
+      {
+        "augmented": true,
+        "question": "Show me tickets about password resets",
+        "category": "content_about",
+        "rationale": "The question asks to find tickets based on the topic or content described (\"about password resets\") rather than a specific structured column value or aggregate metric."
+      },
+      {
+        "augmented": true,
+        "question": "find cases where people are stuck at sign-in and can't verify their identity",
+        "category": "content_about",
+        "rationale": "The question asks to find tickets based on the described symptoms and situation (stuck at sign-in, identity verification issues) rather than a structured column value or a specific ticket ID."
+      },
+      {
+        "augmented": true,
+        "question": "tickets similar to 847205",
+        "category": "content_similar",
+        "rationale": "The question explicitly asks for tickets similar to a specific referenced ticket ID (847205)."
+      }
+    ],
+    "signature": {
+      "instructions": "Classify a natural-language ITSM analytics question.\n\nRoute the question to exactly ONE category so the governed pipeline can\nhandle it: content_about, content_similar, supported, ambiguous, or\nunsupported.\n\nA question is CONTENT_ABOUT when it asks to FIND tickets by what they are\nABOUT — their text content (the subject, symptoms, or situation described\nin the ticket) — rather than by a structured column value. This includes\nDEEP PARAPHRASES that share no keywords with the tickets: route by\nMEANING, not by word shape. Examples: \"tickets about login problems\",\n\"customers unable to complete a purchase because their card was\nrejected\", \"people getting locked out and unable to prove who they are at\nsign-in\", \"slow to notify users\".\n\nA question is CONTENT_SIMILAR when it asks for tickets SIMILAR to a\nreferenced ticket (a ticket id is present or implied). Examples:\n\"tickets similar to 847207\", \"find tickets like 847203\".\n\nA question is SUPPORTED when it can be answered by ONE governed\nstructured query: a single list of rows, a single aggregate (count/sum/\navg/min/max/ratio) with optional filters and ordering, or a grouped\nbreakdown (group_by over 1-3 fields with one aggregate, optionally\nfiltered per-group with having). A COUNT, AGGREGATE, or GROUPED BREAKDOWN\nquestion is SUPPORTED even when it mentions a topic: \"how many tickets\nare about login\" asks for a COUNT, so it is supported, NOT content_about.\n\nClassify as AMBIGUOUS when the question asks for several things at once\n(multi-part, e.g. \"which agent is best AND how many tickets\"), because a\nsingle governed query cannot answer every part and no part may be\nsilently dropped.\n\nClassify as UNSUPPORTED when the question needs query shapes the schema\ncannot express: joins across entities in one result, subqueries, unions,\nor data outside the governed dataset.\n\nWhen you are uncertain whether a question is content_about or a\nstructured analytical question, prefer SUPPORTED (the conservative\ndefault): a missed content question then yields a clarification rather\nthan a wrong answer.",
+      "fields": [
+        {
+          "prefix": "Question:",
+          "description": "the user's natural-language question"
+        },
+        {
+          "prefix": "Category:",
+          "description": "one of: content_about, content_similar, supported, ambiguous, unsupported"
+        },
+        {
+          "prefix": "Rationale:",
+          "description": "one short sentence explaining the classification"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "plan": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "case_id": "DEV-009",
+        "question": "How many tickets breached their resolution SLA?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "count",
+            "field": null
+          },
+          "filters": [
+            {
+              "field": "resolution_breached",
+              "op": "eq",
+              "value": true
+            }
+          ],
+          "limit": 100
+        },
+        "expected_result": {
+          "count": 1037
+        }
+      },
+      {
+        "case_id": "DEV-016",
+        "question": "Which merchants have more than 25 tickets?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "count",
+            "field": null
+          },
+          "group_by": [
+            "merchant_id"
+          ],
+          "having": {
+            "function": "count",
+            "field": null,
+            "op": "gt",
+            "value": 25
+          },
+          "limit": 100
+        },
+        "expected_result": {
+          "row_count": 9
+        }
+      },
+      {
+        "case_id": "DEV-005",
+        "question": "What is the average resolution time in hours for all tickets?",
+        "expected_request": {
+          "entity": "tickets",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "avg",
+            "field": "resolution_hours"
+          },
+          "filters": [],
+          "limit": 100
+        },
+        "expected_result": {
+          "avg_resolution_hours": 31.85
+        }
+      },
+      {
+        "case_id": "DEV-010",
+        "question": "How many merchants are in the Electronics sector?",
+        "expected_request": {
+          "entity": "merchants",
+          "operation": "aggregate",
+          "aggregate": {
+            "function": "count",
+            "field": null
+          },
+          "filters": [
+            {
+              "field": "sector",
+              "op": "eq",
+              "value": "Electronics"
+            }
+          ],
+          "limit": 100
+        },
+        "expected_result": {
+          "count": 14
+        }
+      }
+    ],
+    "signature": {
+      "instructions": "Plan a typed, governed GraphQL query request for a supported question.\n\nOutput a JSON object for a StructuredQueryRequest over the governed ITSM\nschema. Entities and fields are strictly limited to the allowlist:\n\n- tickets: ticket_id, merchant_id, category, sub_category, priority,\n  created_at, is_legacy, assigned_agent_id, category_mismatch,\n  first_response_at, closed_at, ttfr_hours, resolution_hours,\n  response_breached, resolution_breached, is_reopened, is_reopen_child,\n  is_incident_ticket, csat_score\n- merchants: merchant_id, merchant_name, sector, tier, region\n- agents: agent_id, agent_name, tier, primary_category, shift_region,\n  efficiency_multiplier\n\nRules:\n- operation is \"list\" (return rows) or \"aggregate\" (count/sum/avg/min/max/\n  ratio).\n- filters use ops: eq, ne, gt, gte, lt, lte, in, like, is_null,\n  is_not_null. The is_null/is_not_null ops take NO value (null).\n  Missing-value filtering: \"open\" tickets are closed_at is_null;\n  \"closed\" tickets are closed_at is_not_null; \"no assigned agent\" is\n  assigned_agent_id is_null.\n- Use created_at with gte/lt for time ranges (ISO dates).\n- relationships may include merchants and/or agents from tickets.\n- limit must be between 1 and 100.\n- order_by is a single field NAME (string), order_dir is \"asc\" or \"desc\".\n  For \"highest/lowest/most/least/newest/oldest\" questions you MUST set\n  order_by on the relevant field with the matching direction and a small\n  limit, so the returned row is the actual extremum.\n- avg and sum are ONLY valid on numeric fields (ttfr_hours,\n  resolution_hours, csat_score, efficiency_multiplier).\n- For ratio/percentage questions over a boolean flag (e.g. \"what\n  percentage of tickets breached their resolution SLA\"), use the\n  \"ratio\" aggregate with the flag as field: {\"function\": \"ratio\",\n  \"field\": \"resolution_breached\"}. ratio is ONLY valid on boolean\n  fields (is_legacy, category_mismatch, response_breached,\n  resolution_breached, is_reopened, is_reopen_child,\n  is_incident_ticket). The result is a value in [0, 1]; a null result\n  means the base set is empty. ratio also works with group_by for a\n  per-group percentage.\n- Filter values must match the column type: integer ids take integers,\n  boolean flags take true/false, text fields take strings. Never filter\n  an id field with a name. Only the is_null/is_not_null ops carry a null\n  value; every other op requires a typed non-null value.\n- Grouped breakdowns ARE supported: for \"by category/per sector/which\n  group has the most\" questions, use operation \"aggregate\" with\n  \"group_by\": [1-3 allowlisted fields] and one aggregate. On grouped\n  requests order_by may name a grouping field or the string \"count\"\n  (the aggregate column) — use order_by \"count\", order_dir \"desc\" for\n  \"which group has the most\" questions.\n- An optional \"having\" object filters groups AFTER aggregation:\n  {\"function\": \"count\"|\"sum\"|\"avg\"|\"min\"|\"max\", \"field\": null or an\n  allowlisted numeric field, \"op\": \"eq\"|\"ne\"|\"gt\"|\"gte\"|\"lt\"|\"lte\",\n  \"value\": <number>}. having is ONLY valid with a non-empty group_by\n  (e.g. \"merchants with more than 50 tickets\" -> group_by\n  [\"merchant_id\"], having {\"function\": \"count\", \"field\": null,\n  \"op\": \"gt\", \"value\": 50}).\n- NEVER emit joins, subqueries, union, or a bare \"distinct\" key.\n- NEVER output SQL. Output ONLY the JSON request object.",
+      "fields": [
+        {
+          "prefix": "Question:",
+          "description": "a supported analytical question"
+        },
+        {
+          "prefix": "Request Json:",
+          "description": "a single JSON object matching StructuredQueryRequest exactly; no SQL, no prose, no code fences. Shape: {\"entity\": \"tickets\", \"operation\": \"aggregate\", \"aggregate\": {\"function\": \"count\", \"field\": null}, \"filters\": [{\"field\": \"priority\", \"op\": \"eq\", \"value\": \"P1\"}], \"limit\": 100}. For a list operation use \"operation\": \"list\" with \"fields\": [...] and no \"aggregate\" key."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.14",
+      "dspy": "3.4.0",
+      "cloudpickle": "3.1"
+    }
+  }
+}
