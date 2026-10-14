@@ -1,0 +1,77 @@
+{
+  "threshold": 0.25,
+  "version": "1",
+  "calibration_method": "deterministic distance sweep over dev count cases",
+  "calibration_dev_ids": [
+    "DEV-CNT-001",
+    "DEV-CNT-002",
+    "DEV-CNT-003",
+    "DEV-CNT-004",
+    "DEV-CNT-005"
+  ],
+  "dev_exact_count_accuracy": 1.0,
+  "per_threshold": [
+    {
+      "threshold": 0.18,
+      "exact_count_accuracy": 0.2,
+      "correct": 1,
+      "total": 5
+    },
+    {
+      "threshold": 0.2,
+      "exact_count_accuracy": 0.2,
+      "correct": 1,
+      "total": 5
+    },
+    {
+      "threshold": 0.22,
+      "exact_count_accuracy": 0.2,
+      "correct": 1,
+      "total": 5
+    },
+    {
+      "threshold": 0.24,
+      "exact_count_accuracy": 0.2,
+      "correct": 1,
+      "total": 5
+    },
+    {
+      "threshold": 0.25,
+      "exact_count_accuracy": 1.0,
+      "correct": 5,
+      "total": 5
+    },
+    {
+      "threshold": 0.26,
+      "exact_count_accuracy": 0.2,
+      "correct": 1,
+      "total": 5
+    },
+    {
+      "threshold": 0.28,
+      "exact_count_accuracy": 0.2,
+      "correct": 1,
+      "total": 5
+    },
+    {
+      "threshold": 0.3,
+      "exact_count_accuracy": 0.0,
+      "correct": 0,
+      "total": 5
+    },
+    {
+      "threshold": 0.32,
+      "exact_count_accuracy": 0.0,
+      "correct": 0,
+      "total": 5
+    },
+    {
+      "threshold": 0.35,
+      "exact_count_accuracy": 0.0,
+      "correct": 0,
+      "total": 5
+    }
+  ],
+  "created_at": "2026-10-14T18:54:37.908316+00:00",
+  "artifact_sha256": "a65bcbd05b73aac6b700a03f3c2f86754972119d7ed638c05ab39b1e246abf52"
+}

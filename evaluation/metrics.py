@@ -310,3 +310,75 @@ def false_routing_rate(per_case: list[dict]) -> float | None:
                     if str(c["predicted_category"]).strip().lower()
                     in _CONTENT_ROUTES)
     return round(misrouted / len(structured), 4)
+
+# ---------------------------------------------------------------------------
+# Count-over-content metrics (feature 012): count accuracy + false-count rate
+# ---------------------------------------------------------------------------
+
+#: The labeled route value for a count-over-content question (feature 012).
+ROUTE_CONTENT_COUNT = "content_count"
+
+
+def count_accuracy(per_case: list[dict]) -> float | None:
+    """Fraction of held-out count cases where the computed count EXACTLY
+    matches the labeled true count.
+
+    Each count case dict carries "count_correct" (1.0/0.0). Returns None when
+    no count cases were scored. Deterministic; no model involved.
+    """
+    vals = [c["count_correct"] for c in per_case
+            if c.get("count_correct") is not None]
+    if not vals:
+        return None
+    return round(sum(vals) / len(vals), 4)
+
+
+def count_correct(expected_count: object, actual_count: object) -> float:
+    """Return 1.0 when the computed count exactly matches the labeled count.
+
+    Binary (no partial credit), mirroring the house metric discipline. Both
+    must be genuine integers (bool rejected). Deterministic; no model.
+    """
+    if expected_count is None or actual_count is None:
+        return 0.0
+    if isinstance(expected_count, bool) or isinstance(actual_count, bool):
+        return 0.0
+    if not isinstance(expected_count, (int, float)) or             not isinstance(actual_count, (int, float)):
+        return 0.0
+    return 1.0 if int(actual_count) == int(expected_count) else 0.0
+
+
+def false_count_rate(per_case: list[dict]) -> float | None:
+    """Bounded false-count routing rate (feature 012, research R5).
+
+    Two error directions are counted:
+      (a) a count-over-content question (labeled route content_count) mis-routed
+          to the STRUCTURED path (which would return a misleading 0);
+      (b) a structured count question (labeled route supported) mis-routed to
+          content_count.
+
+    Only routing cases with a labeled route and a predicted category are
+    considered. Returns None when no relevant routing cases were scored.
+    """
+    # (a) content_count questions mis-routed to structured.
+    content_counts = [c for c in per_case
+                      if c.get("expected_route") == ROUTE_CONTENT_COUNT
+                      and c.get("predicted_category") is not None]
+    # (b) structured questions mis-routed to content_count.
+    structured = [c for c in per_case
+                  if c.get("expected_route") == ROUTE_STRUCTURED
+                  and c.get("predicted_category") is not None]
+
+    errors = 0
+    total = 0
+    for c in content_counts:
+        total += 1
+        if str(c["predicted_category"]).strip().lower() == ROUTE_STRUCTURED:
+            errors += 1
+    for c in structured:
+        total += 1
+        if str(c["predicted_category"]).strip().lower() == ROUTE_CONTENT_COUNT:
+            errors += 1
+    if total == 0:
+        return None
+    return round(errors / total, 4)
