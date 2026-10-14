@@ -23,8 +23,8 @@ index must exist); US4 hard-depends on US3 (the retrieval path must exist).
 ## Phase 1: Setup
 
 - [x] T001 Record the pre-implementation baseline in `specs/010-hybrid-search/runner-report.md` (skeleton): current git commit + working-tree state, and `pytest -q` result (expect 500 passed, 0 failed). Do not overwrite unrelated user changes.
-- [ ] T002 [P] Embedding-endpoint preflight per the `app/ai/llm.py` discipline: call `GET /v1/models` on the configured embedding endpoint, verify the exact pinned embedding model ID (`models\embeddinggemma-2-Q8_0.gguf`) is loaded and the `/v1/embeddings` route is supported, run one deterministic embedding smoke request (dimension 768), and confirm `artifacts/embedding-preflight.json` (already recorded 2026-10-13) matches. STOP AND REPORT on any mismatch — no fallback model, no hosted API.
-- [ ] T003 [P] Add the transient embedding state to `.gitignore`: `artifacts/tickets_embeddings.checkpoint.jsonl` (document the rule in a file comment), mirroring the feature 009 checkpoint rule.
+- [x] T002 [P] Embedding-endpoint preflight per the `app/ai/llm.py` discipline: call `GET /v1/models` on the configured embedding endpoint, verify the exact pinned embedding model ID (`models\embeddinggemma-2-Q8_0.gguf`) is loaded and the `/v1/embeddings` route is supported, run one deterministic embedding smoke request (dimension 768), and confirm `artifacts/embedding-preflight.json` (already recorded 2026-10-13) matches. STOP AND REPORT on any mismatch — no fallback model, no hosted API.
+- [x] T003 [P] Add the transient embedding state to `.gitignore`: `artifacts/tickets_embeddings.checkpoint.jsonl` (document the rule in a file comment), mirroring the feature 009 checkpoint rule.
 
 ## Phase 2: Foundational (tests first — BLOCKS all user stories)
 
