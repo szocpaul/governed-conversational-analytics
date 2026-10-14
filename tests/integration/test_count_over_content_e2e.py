@@ -81,13 +81,31 @@ def test_paraphrase_count_includes_semantic_matches(client):
     assert count > 0
 
 
-def test_small_topic_exact_count(client):
-    """A topic with few matches returns the exact small count (no cap)."""
+def test_no_undercount_topic_exceeds_retrieval_cap(client):
+    """A topic with more matches than the retrieval cap returns the TRUE total.
+
+    'SSO' matches 33 tickets (verified live) — more than the governed retrieval
+    cap of 25. The count MUST be the true total (33), NOT the capped list
+    length (25) — proving the count is not limited by the retrieval cap.
+    """
     payload = _post(client, "how many tickets about SSO")
     assert payload["status"] == "answered"
     count = _count_of(payload)
     assert isinstance(count, int)
-    assert 0 < count < RETRIEVAL_CAP  # small true count, well under the cap
+    assert count > RETRIEVAL_CAP, "the true total exceeds the retrieval cap"
+    assert count != RETRIEVAL_CAP, "the count is NOT the capped list length"
+
+
+def test_exact_count_matches_calibrated_label(client):
+    """'how many tickets about login' returns the exact calibrated count.
+
+    The calibrated hybrid count for 'login' (threshold 0.25) is 156 — the
+    lexical matches plus the semantic paraphrase matches. This is the TRUE
+    count the governed hybrid query produces (not 0, not 25).
+    """
+    payload = _post(client, "how many tickets about login")
+    assert payload["status"] == "answered"
+    assert _count_of(payload) == 156
 
 
 def test_structured_count_unchanged(client):
