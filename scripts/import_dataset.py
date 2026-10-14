@@ -130,6 +130,70 @@ TEXTS_MANIFEST_PATH = os.environ.get(
 
 GENERATED_COLUMNS = ("short_description", "description", "resolution_notes")
 
+# ---------------------------------------------------------------------------
+# Feature 010: ticket embeddings (additive vector column, pinned artifact)
+# ---------------------------------------------------------------------------
+
+EMBEDDINGS_ARTIFACT_PATH = os.environ.get(
+    "TICKETS_EMBEDDINGS_PATH", os.path.join(RAW_DIR, "tickets_embeddings.jsonl"))
+EMBEDDINGS_MANIFEST_PATH = os.environ.get(
+    "EMBEDDINGS_MANIFEST_PATH", os.path.join(RAW_DIR, "embeddings-manifest.json"))
+
+EMBEDDING_DIMENSION = 768
+
+
+def load_embeddings(tickets_raw):
+    """Load and fully verify the pinned embedding artifact.
+
+    Returns (vectors_by_id, embeddings_manifest) or None when the artifact is
+    absent (pre-feature-010 checkout: embeddings import is skipped). Any
+    verification failure raises ImportValidationError -> full rollback.
+    """
+    if not os.path.exists(EMBEDDINGS_ARTIFACT_PATH) or not os.path.exists(EMBEDDINGS_MANIFEST_PATH):
+        return None
+    with open(EMBEDDINGS_MANIFEST_PATH, encoding="utf-8") as fh:
+        embeddings_manifest = json.load(fh)
+
+    # (a) artifact SHA-256 must equal the manifest's recorded checksum.
+    actual_sha = sha256_file(EMBEDDINGS_ARTIFACT_PATH)
+    recorded_sha = embeddings_manifest.get("artifact_sha256")
+    if actual_sha != recorded_sha:
+        raise ImportValidationError(
+            f"embedding artifact SHA-256 mismatch: manifest records "
+            f"{recorded_sha}, file is {actual_sha}. Refusing to import a "
+            f"modified or unverified artifact.")
+
+    vectors = {}
+    with open(EMBEDDINGS_ARTIFACT_PATH, encoding="utf-8") as fh:
+        for lineno, line in enumerate(fh, start=1):
+            if not line.strip():
+                continue
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ImportValidationError(
+                    f"embedding artifact line {lineno}: invalid JSON: {exc}")
+            vec = obj.get("embedding")
+            # (c) every vector dimension == 768.
+            if not isinstance(vec, list) or len(vec) != EMBEDDING_DIMENSION:
+                raise ImportValidationError(
+                    f"embedding artifact line {lineno} (ticket "
+                    f"{obj.get('ticket_id')}): dimension "
+                    f"{len(vec) if isinstance(vec, list) else 'n/a'} != "
+                    f"{EMBEDDING_DIMENSION}")
+            vectors[int(obj["ticket_id"])] = vec
+
+    # (b) ticket_id coverage must be exactly the pinned set.
+    pinned_ids = {int(r["ticket_id"]) for r in tickets_raw}
+    got_ids = set(vectors)
+    if got_ids != pinned_ids:
+        missing = sorted(pinned_ids - got_ids)[:5]
+        extra = sorted(got_ids - pinned_ids)[:5]
+        raise ImportValidationError(
+            f"embedding coverage mismatch: missing={missing} extra={extra} "
+            f"(expected exactly the pinned {len(pinned_ids)} ticket_ids)")
+    return vectors, embeddings_manifest
+
 
 def load_generated_texts(tickets_raw):
     """Load and fully verify the pinned, human-approved generated artifact.
@@ -249,6 +313,8 @@ def main():
     # Feature 009: load + verify the generated texts BEFORE opening the
     # transaction so any failure aborts before any database write.
     generated = load_generated_texts(tickets_raw)
+    # Feature 010: load + verify the pinned embedding artifact the same way.
+    embeddings = load_embeddings(tickets_raw)
 
     conn = psycopg.connect(
         host=POSTGRES_HOST, port=POSTGRES_PORT, user=POSTGRES_USER,
@@ -307,6 +373,20 @@ def main():
                         "WHERE ticket_id = %s",
                         text_rows)
 
+                # Feature 010: upsert the embedding column per ticket in the
+                # SAME single transaction (the embedding column only). The
+                # tickets were upserted above, so every ticket_id is present.
+                if embeddings is not None:
+                    vectors, _emb_manifest = embeddings
+                    emb_rows = [
+                        ("[" + ",".join(repr(float(v)) for v in vec) + "]", tid)
+                        for tid, vec in vectors.items()
+                    ]
+                    cur.executemany(
+                        "UPDATE itsm.tickets SET embedding = %s::vector "
+                        "WHERE ticket_id = %s",
+                        emb_rows)
+
                 # Post-import validation inside the transaction.
                 cur.execute("SELECT count(*) FROM itsm.merchants")
                 n_merchants = cur.fetchone()[0]
@@ -351,6 +431,21 @@ def main():
                         raise ImportValidationError(
                             f"resolution_notes NULL count {n_null} != open ticket "
                             f"count {len(open_ids)} after import")
+                # Feature 010: post-import embedding checks inside the
+                # transaction (count + dimension).
+                if embeddings is not None:
+                    cur.execute(
+                        "SELECT count(*) FROM itsm.tickets WHERE embedding IS NULL")
+                    if cur.fetchone()[0]:
+                        raise ImportValidationError(
+                            "embedding column incomplete after import")
+                    cur.execute(
+                        "SELECT count(*) FROM itsm.tickets WHERE "
+                        "vector_dims(embedding) != %s", (EMBEDDING_DIMENSION,))
+                    if cur.fetchone()[0]:
+                        raise ImportValidationError(
+                            f"embedding dimension != {EMBEDDING_DIMENSION} "
+                            "after import")
     except Exception:
         conn.close()
         raise
@@ -387,6 +482,19 @@ def main():
             "human_review": texts_manifest.get("human_review"),
             "imported_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         }
+    # Feature 010: additive ticket_embeddings provenance key; existing keys untouched.
+    if embeddings is not None:
+        vectors, embeddings_manifest = embeddings
+        manifest["ticket_embeddings"] = {
+            "artifact_path": os.path.relpath(EMBEDDINGS_ARTIFACT_PATH, REPO_ROOT),
+            "artifact_sha256": sha256_file(EMBEDDINGS_ARTIFACT_PATH),
+            "embeddings_manifest_path": os.path.relpath(EMBEDDINGS_MANIFEST_PATH, REPO_ROOT),
+            "embeddings_manifest_sha256": sha256_file(EMBEDDINGS_MANIFEST_PATH),
+            "artifact_version": str(embeddings_manifest.get("artifact_version", "1")),
+            "row_count": len(vectors),
+            "embedding_dimension": EMBEDDING_DIMENSION,
+            "imported_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        }
 
     with open(MANIFEST_PATH, "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, indent=2)
@@ -397,6 +505,10 @@ def main():
         entries, _tm = generated
         print(f"imported generated texts for {len(entries)} tickets "
               f"(3 columns, human-approved artifact)")
+    if embeddings is not None:
+        vectors, _em = embeddings
+        print(f"imported embeddings for {len(vectors)} tickets "
+              f"(vector({EMBEDDING_DIMENSION}), pinned artifact)")
 
 
 if __name__ == "__main__":
