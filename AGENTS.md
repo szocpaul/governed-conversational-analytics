@@ -45,7 +45,10 @@ typing suggestions). Content lives in the version-controlled static asset
 `app/web/examples.json`; no backend API change, no new runtime dependencies.
 Live verification: `python -m evaluation.verify_examples` (21/21 passed,
 artifact `artifacts/examples-verification.json`). See
-`specs/008-query-discovery-ui/runner-report.md`.
+`specs/008-query-discovery-ui/runner-report.md`. Follow-up (2026-10-14):
+the gallery gained a "Content search" category (5 examples covering hybrid
+retrieval, deep-paraphrase routing, vector similarity, and
+count-over-content from features 010-012); `verify_examples` 26/26 passed.
 
 **Feature 009 (Synthetic Ticket Texts) is COMPLETE and human-approved
 (T001-T024, MANUAL GATE passed 2026-10-13).** The pinned dataset gains
