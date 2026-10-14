@@ -39,7 +39,7 @@
     }
   },
   "import": {
-    "imported_at": "2026-10-13T11:13:34.626248+00:00",
+    "imported_at": "2026-10-14T06:05:48.158037+00:00",
     "row_counts": {
       "merchants": 112,
       "agents": 20,
@@ -72,6 +72,16 @@
       "reviewed_at": "2026-10-13T09:10:04Z",
       "sample_notes": "Per-category sample review (5 categories, open+closed) via specs/009-synthetic-ticket-texts/review-sample.md; NULL rule, category consistency, priority tone verified. Gate approved by human on 2026-10-13."
     },
-    "imported_at": "2026-10-13T11:13:34.628197+00:00"
+    "imported_at": "2026-10-14T06:05:48.160197+00:00"
+  },
+  "ticket_embeddings": {
+    "artifact_path": "data/raw/tickets_embeddings.jsonl",
+    "artifact_sha256": "54e33429fdac5fae7e9abf5cdb6e1cbd3aab7bf8f02c66f8927b41467fd2ebdb",
+    "embeddings_manifest_path": "data/raw/embeddings-manifest.json",
+    "embeddings_manifest_sha256": "0acdbbfccd479241927782d8f54781d202c944d250684c476b3adb15e7666c4d",
+    "artifact_version": "1",
+    "row_count": 2057,
+    "embedding_dimension": 768,
+    "imported_at": "2026-10-14T06:05:48.185592+00:00"
   }
 }
