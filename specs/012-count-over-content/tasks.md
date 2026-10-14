@@ -71,7 +71,7 @@ and zero held-out IDs appear in the calibration input.
 
 - [X] T016 Run the full validation gate set from `specs/012-count-over-content/quickstart.md` steps 1-5: `pytest -q` green (all 622 pre-existing + new tests, SC-009); count smoke test passes (true count, paraphrase count, no undercount, structured unchanged); held-out gate passes. Fix any failure at its source.
 - [X] T017 Verify artifact pinning: recompute SHA-256 of `count-threshold.json` and confirm it equals the recorded `artifact_sha256`; confirm the calibration dev IDs are development case IDs only; confirm `app/ai/optimized_program.json` matches the `output_artifact_sha256` in `artifacts/optimization-run.json`.
-- [ ] T018 Complete `specs/012-count-over-content/runner-report.md` per the AGENTS.md Required Final Report: completed/blocked task IDs, files changed, commits, exact pinned versions, validation commands with exact results, the calibrated threshold + noise-calibration thresholds, count accuracy + false-count + structured-regression results, security count-case results, latency (median, p90, max, observational), known limitations.
+- [X] T018 Complete `specs/012-count-over-content/runner-report.md` per the AGENTS.md Required Final Report: completed/blocked task IDs, files changed, commits, exact pinned versions, validation commands with exact results, the calibrated threshold + noise-calibration thresholds, count accuracy + false-count + structured-regression results, security count-case results, latency (median, p90, max, observational), known limitations.
 
 ## Dependencies
 
