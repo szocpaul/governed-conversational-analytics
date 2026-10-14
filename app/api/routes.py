@@ -21,8 +21,10 @@ from app.ai.answer_program import AnswerProgram
 from app.ai.query_program import QueryProgram
 from app.ai.routing import extract_ticket_id
 from app.ai.retrieval import (
+    CountThresholdError,
     RetrievalError,
     RetrievalRequest,
+    count_over_content,
     fetch_ticket_summaries,
     retrieve,
     validate_retrieval_request,
@@ -163,6 +165,69 @@ def _run_retrieval(req: RetrievalRequest, trace: Trace,
     return _response("answered", redact(answered.answer), trace, evidence)
 
 
+def _run_count(trace: Trace, question: str) -> QueryResponse:
+    """Execute the governed hybrid count and ground the answer on the total.
+
+    The count is a TRUE total (never capped by the retrieval limit), grounded
+    with up to 5 example ticket_ids. An absent/uncalibrated semantic threshold
+    yields a stable dependency error (never a hardcoded default, FR-005); a
+    retrieval/embedding failure likewise. Never fabricates a number.
+    """
+    try:
+        result = count_over_content(question, embed_query=_embed_query_text)
+    except CountThresholdError as exc:
+        trace.add("error", f"count threshold unavailable: {exc}")
+        return _response(
+            "dependency_error",
+            "The count over content is not calibrated; the semantic-match "
+            "threshold is unavailable. No count was produced.",
+            trace,
+        )
+    except RetrievalError as exc:
+        trace.add("error", f"count dependency failure: {exc}")
+        return _response(
+            "dependency_error",
+            "The retrieval dependency is unavailable; no fallback was "
+            "attempted.",
+            trace,
+        )
+
+    count = result["count"]
+    example_ids = result["example_ticket_ids"]
+    trace.add("count",
+              f"count={count} example_ticket_ids={example_ids}")
+
+    # Ground the answer on the count + up to 5 example ids (never fabricate).
+    summaries = fetch_ticket_summaries(example_ids)
+    evidence = Evidence(
+        rows=summaries,
+        aggregate={"count": count},
+        row_count=len(summaries),
+    )
+    try:
+        ap = _make_answer_program()
+        answered = ap(question=question, evidence=evidence)
+    except Exception:  # noqa: BLE001
+        trace.add("error", "answer dependency failure")
+        return _response(
+            "dependency_error",
+            "The language model dependency is unavailable; no fallback was "
+            "attempted.",
+            trace,
+        )
+    if not answered.grounded:
+        trace.add("refused", "answer not grounded in count result")
+        return _response(
+            "clarification",
+            "I could not produce an answer fully supported by the count "
+            "result. Please rephrase or narrow the question.",
+            trace,
+            evidence,
+        )
+    trace.add("answered", "grounded answer returned from count")
+    return _response("answered", redact(answered.answer), trace, evidence)
+
+
 def _response(status: str, answer: str, trace: Trace,
               evidence: Evidence | None = None) -> QueryResponse:
     return QueryResponse(
@@ -260,6 +325,14 @@ def _query_inner(req: QuestionRequest) -> QueryResponse:
                   f"content_similar -> governed retrieval (ticket_id="
                   f"{ticket_id})")
         return _run_retrieval(content_req, trace, req.question)
+
+    # 2a-count. Feature 012: a COUNT over a TOPIC routes to the governed
+    # hybrid count path (NOT the structured planner, which would return a
+    # misleading 0). The query text is embedded and counted via the governed
+    # count query; the answer grounds on the true total + up to 5 examples.
+    if classification == "content_count":
+        trace.add("routed", "content_count -> governed hybrid count")
+        return _run_count(trace, req.question)
 
     # 2b. Ambiguity / unsupported -> stable categories, no query executed.
     if classification == "ambiguous":

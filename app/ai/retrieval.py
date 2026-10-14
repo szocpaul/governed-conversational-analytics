@@ -151,6 +151,134 @@ def _vector_literal(vector: list[float]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Governed hybrid COUNT query (feature 012, contracts/count-query.md, R1/R2)
+# ---------------------------------------------------------------------------
+
+import json as _json
+
+# Governed cap on the example ticket_ids returned for grounding (<= 5). The
+# COUNT itself is NEVER limited; only this small example selection is capped.
+MAX_COUNT_EXAMPLES = 5
+
+# Versioned, committed semantic-match threshold artifact (never hardcoded).
+COUNT_THRESHOLD_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "..",
+    "count-threshold.json")
+
+
+class CountThresholdError(RuntimeError):
+    """Raised when the semantic-match threshold is absent or uncalibrated."""
+
+
+def load_count_threshold(path: str | None = None) -> float:
+    """Load the calibrated semantic-match threshold (FR-005).
+
+    The threshold is a calibrated, recorded, versioned parameter — never a
+    hardcoded default. If the artifact is absent or carries no valid
+    threshold, the count path stops and reports (CountThresholdError).
+    """
+    p = path or COUNT_THRESHOLD_PATH
+    if not os.path.exists(p):
+        raise CountThresholdError(
+            f"semantic-match threshold artifact not found at {p}; the count "
+            f"path is uncalibrated and stops (FR-005)")
+    try:
+        with open(p) as f:
+            data = _json.load(f)
+    except Exception as exc:  # noqa: BLE001
+        raise CountThresholdError(
+            f"semantic-match threshold artifact is unreadable: {exc}") from exc
+    threshold = data.get("threshold")
+    if isinstance(threshold, bool) or not isinstance(threshold, (int, float)):
+        raise CountThresholdError(
+            "semantic-match threshold is absent or uncalibrated; the count "
+            "path stops and reports (FR-005)")
+    return float(threshold)
+
+
+def _validate_threshold(threshold: float) -> float:
+    if isinstance(threshold, bool) or not isinstance(threshold, (int, float)):
+        raise ValueError("threshold must be a real number (cosine distance)")
+    return float(threshold)
+
+
+def build_count_query(query_text: str, query_vector: list[float],
+                      threshold: float) -> tuple[str, list]:
+    """Build the governed hybrid COUNT query (true total, NO LIMIT).
+
+    A ticket matches when it matches lexically (fts @@ plainto_tsquery) OR
+    semantically (embedding <=> qvec <= threshold). The query text, query
+    vector, and threshold are BOUND parameters — never interpolated — so no
+    arbitrary SQL is possible. The count is a TRUE total: no LIMIT clause.
+    """
+    threshold = _validate_threshold(threshold)
+    sql = (
+        "SELECT count(*) AS match_count "
+        "FROM itsm.tickets "
+        "WHERE fts @@ plainto_tsquery('english', %s) "
+        "OR (embedding <=> %s::vector) <= %s"
+    )
+    return sql, [query_text, _vector_literal(query_vector), threshold]
+
+
+def build_count_examples_query(query_text: str, query_vector: list[float],
+                               threshold: float) -> tuple[str, list]:
+    """Build the small LIMITed example-ids selection over the SAME match.
+
+    Returns up to MAX_COUNT_EXAMPLES example ticket_ids for grounding, drawn
+    from the same hybrid match condition as the count. Only this selection is
+    capped; the count itself is a true total.
+    """
+    threshold = _validate_threshold(threshold)
+    sql = (
+        "SELECT ticket_id "
+        "FROM itsm.tickets "
+        "WHERE fts @@ plainto_tsquery('english', %s) "
+        "OR (embedding <=> %s::vector) <= %s "
+        "ORDER BY ticket_id ASC "
+        "LIMIT %s"
+    )
+    return sql, [query_text, _vector_literal(query_vector), threshold,
+                 MAX_COUNT_EXAMPLES]
+
+
+def count_over_content(query_text: str, *,
+                       embed_query,
+                       threshold: float | None = None) -> dict:
+    """Execute the governed hybrid count and return the true total + examples.
+
+    `embed_query` embeds the query text with the pinned EmbeddingGemma-2
+    endpoint (no fallback). The threshold is loaded from the versioned
+    artifact when not supplied; an absent/uncalibrated threshold raises
+    CountThresholdError (the count path stops and reports, FR-005).
+
+    Returns {"count": int, "example_ticket_ids": [...], "trace": [...]} with
+    a sanitized trace (the count + up to 5 example ids; no credentials,
+    endpoint details, SQL text, or prompts).
+    """
+    if threshold is None:
+        threshold = load_count_threshold()
+    threshold = _validate_threshold(threshold)
+    if embed_query is None:
+        raise RetrievalError(
+            "count over content requires an embedding callable for the query text")
+    qvec = embed_query(query_text)
+
+    count_sql, count_params = build_count_query(query_text, qvec, threshold)
+    ex_sql, ex_params = build_count_examples_query(query_text, qvec, threshold)
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute(count_sql, count_params)
+        count = int(cur.fetchone()[0])
+        cur.execute(ex_sql, ex_params)
+        example_ids = [int(r[0]) for r in cur.fetchall()]
+
+    trace = [{"event": "count", "count": count,
+              "example_ticket_ids": example_ids}]
+    return {"count": count, "example_ticket_ids": example_ids,
+            "trace": trace}
+
+
+# ---------------------------------------------------------------------------
 # Deterministic RRF fusion (research R8, k=60)
 # ---------------------------------------------------------------------------
 
