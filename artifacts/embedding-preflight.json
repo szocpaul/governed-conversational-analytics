@@ -1,0 +1,25 @@
+{
+  "component": "embedding-endpoint",
+  "checked_at": "2026-10-13T20:57:25.466812+00:00",
+  "provider": "openai-compatible (local llama.cpp, --embeddings)",
+  "model_id": "models\\embeddinggemma-2-Q8_0.gguf",
+  "model_file_sha256_note": "to be recorded in embeddings-manifest.json at generation time (operator-side certutil)",
+  "embedding_dimension": 768,
+  "endpoint_reachable": true,
+  "embeddings_route_supported": true,
+  "determinism_check": {
+    "method": "same input twice, cosine similarity",
+    "result": 1.0
+  },
+  "semantic_sanity": {
+    "method": "cosine similarity of short English ITSM phrases",
+    "login_vs_auth_sso": 0.7915,
+    "login_vs_payment": 0.5999,
+    "interpretation": "semantically related phrases score higher than unrelated ones"
+  },
+  "quantization": "Q8_0",
+  "source_gguf": "ggml-org/embeddinggemma-2-GGUF",
+  "license": "Apache-2.0",
+  "no_fallback": true,
+  "notes": "Separate pinned llama.cpp instance (--embeddings) alongside the chat server; chat server untouched. Endpoint URL intentionally not recorded here (private-endpoint discipline)."
+}
