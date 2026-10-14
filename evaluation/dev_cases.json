@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "kind": "development",
   "description": "Labeled development cases for BootstrapFewShot optimization (spec 004, T001). These are the ONLY cases the optimizer may consume (FR-009, SC-007). Each supported case carries a labeled governed request and the normalized expected execution result. Feature 011 added route_* cases labeling the routing decision.",
   "cases": [
@@ -710,6 +710,61 @@
       "question": "What is the weather forecast for tomorrow?",
       "expected": {
         "route": "unsupported"
+      }
+    },
+    {
+      "id": "DEV-CNT-001",
+      "category": "count_content",
+      "question": "how many tickets about login",
+      "expected": {
+        "count": 156,
+        "relevant_categories": [
+          "Account Access"
+        ]
+      }
+    },
+    {
+      "id": "DEV-CNT-002",
+      "category": "count_content",
+      "question": "how many tickets are about password resets",
+      "expected": {
+        "count": 116,
+        "relevant_categories": [
+          "Account Access"
+        ]
+      }
+    },
+    {
+      "id": "DEV-CNT-003",
+      "category": "count_content",
+      "question": "how many tickets about refund",
+      "expected": {
+        "count": 102,
+        "relevant_categories": [
+          "Payments & Checkout"
+        ]
+      }
+    },
+    {
+      "id": "DEV-CNT-004",
+      "category": "count_content",
+      "question": "how many tickets mention webhook failures",
+      "expected": {
+        "count": 250,
+        "relevant_categories": [
+          "API Integrations"
+        ]
+      }
+    },
+    {
+      "id": "DEV-CNT-005",
+      "category": "count_content",
+      "question": "how many tickets are about delivery tracking",
+      "expected": {
+        "count": 99,
+        "relevant_categories": [
+          "Fulfilment & Logistics"
+        ]
       }
     }
   ]
