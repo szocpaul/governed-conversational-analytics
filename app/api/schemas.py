@@ -279,3 +279,22 @@ class QuestionRequest(BaseModel):
     """Inbound user question."""
 
     question: str = Field(min_length=1)
+
+
+# ---------------------------------------------------------------------------
+# Feature 010: governed hybrid retrieval (opt-in planner tool)
+# ---------------------------------------------------------------------------
+
+# Fixed allowlist of searchable fields (the three generated text fields).
+# Mirrors app/ai/retrieval.py; fixed in code, never model-controllable.
+RETRIEVAL_SEARCHABLE_FIELDS = ("short_description", "description",
+                               "resolution_notes")
+MAX_RETRIEVAL_LIMIT = 25  # governed hard cap on retrieval results
+
+
+class RetrievalResult(BaseModel):
+    """The result of one governed hybrid retrieval call (runtime entity)."""
+
+    ticket_ids: list[int] = Field(default_factory=list)
+    scores: list[float] = Field(default_factory=list)
+    trace: list[dict] = Field(default_factory=list)
