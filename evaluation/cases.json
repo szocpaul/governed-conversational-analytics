@@ -1009,7 +1009,7 @@
       "category": "route_structured",
       "question": "how many tickets mention refunds",
       "expected": {
-        "route": "supported"
+        "route": "content_count"
       }
     },
     {

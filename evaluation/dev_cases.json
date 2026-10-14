@@ -693,7 +693,7 @@
       "category": "route_structured",
       "question": "how many tickets are about login",
       "expected": {
-        "route": "supported"
+        "route": "content_count"
       }
     },
     {
