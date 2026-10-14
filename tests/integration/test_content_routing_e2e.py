@@ -96,12 +96,16 @@ def test_similar_question_routes_to_retrieval_similar_mode(client):
 # Structured analytical questions -> structured path UNCHANGED (no retrieval)
 # ---------------------------------------------------------------------------
 
-def test_count_about_a_topic_stays_structured(client):
-    # "how many tickets about login" is a COUNT -> structured, NOT retrieval.
+def test_count_about_a_topic_routes_to_count_path(client):
+    # Feature 012 (FR-006) supersedes the pre-012 behavior: "how many tickets
+    # about login" is a COUNT over a TOPIC -> the governed content_count path
+    # (a true hybrid count), NOT the structured planner (which returned a
+    # misleading 0) and NOT the retrieval list (capped at 25).
     p = _query(client, "how many tickets are about login")
     assert p["status"] == "answered"
     events = _events(p)
-    assert "executed" in events, "expected the structured GraphJin path"
+    assert "count" in events, "expected the governed content_count path"
+    assert "executed" not in events, "a count over a topic is not structured"
     assert "retrieval" not in events, "a count must not route to retrieval"
 
 
