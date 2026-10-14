@@ -4,7 +4,8 @@
     "Priority & category",
     "SLA & quality",
     "Aggregations & comparisons",
-    "Security demo"
+    "Security demo",
+    "Content search"
   ],
   "examples": [
     {
@@ -112,6 +113,31 @@
       "category": "Security demo",
       "outcome": "refusal_demo",
       "note": "Demonstration only: this malicious request is intentionally refused by the governed pipeline. No query is executed and the database is never modified."
+    },
+    {
+      "question": "Show me tickets about login problems",
+      "category": "Content search",
+      "outcome": "answerable"
+    },
+    {
+      "question": "Which tickets describe customers unable to complete a purchase because their card was rejected?",
+      "category": "Content search",
+      "outcome": "answerable"
+    },
+    {
+      "question": "Find tickets similar to ticket 847203",
+      "category": "Content search",
+      "outcome": "answerable"
+    },
+    {
+      "question": "How many tickets are about login?",
+      "category": "Content search",
+      "outcome": "answerable"
+    },
+    {
+      "question": "How many tickets mention refunds?",
+      "category": "Content search",
+      "outcome": "answerable"
     }
   ]
 }
