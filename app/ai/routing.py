@@ -97,3 +97,45 @@ def extract_ticket_id(question: object) -> int | None:
         return int(match.group(1))
     except (TypeError, ValueError):  # pragma: no cover - regex guarantees digits
         return None
+
+# ---------------------------------------------------------------------------
+# Deterministic count-topic extractor (feature 012)
+# ---------------------------------------------------------------------------
+
+# A count-over-content question ("how many tickets about X") frames the TOPIC
+# X in count boilerplate. The governed hybrid count searches the TOPIC, not the
+# whole question: plainto_tsquery ANDs the content words, so the full question
+# ("... tickets about login" -> 'ticket' & 'login') would return 0 because the
+# word "ticket" rarely appears in ticket text. Stripping the framing yields the
+# topic ("login"), which the lexical side matches meaningfully. Deterministic,
+# no model, no I/O — mirroring extract_ticket_id.
+_COUNT_HEAD_RE = re.compile(
+    r"^\s*(?:how\s+many|count(?:\s+of)?|number\s+of|total\s+(?:number\s+of\s+)?)"
+    r"\s+(?:tickets?|issues?|cases?|requests?|problems?|items?)\s*",
+    re.IGNORECASE)
+_COUNT_CONNECTOR_RE = re.compile(
+    r"^\s*(?:that\s+are|which\s+are|there|are|is|about|regarding|concerning|"
+    r"related\s+to|on|for|of|mentioning|mention|containing|contain|with|"
+    r"describing|describe)\b\s*",
+    re.IGNORECASE)
+
+
+def extract_count_topic(question: object) -> str | None:
+    """Return the content TOPIC of a count-over-content question, or None.
+
+    Strips the count framing ("how many tickets about/are about/mention/...")
+    to yield the topic phrase the governed hybrid count searches. Pure
+    function, no LLM, no I/O. Returns None when no topic remains.
+    """
+    if not question:
+        return None
+    q = str(question).strip().rstrip("?.!")
+    rest = _COUNT_HEAD_RE.sub("", q)
+    # Strip up to a few leading connectors (e.g. "are about", "there about").
+    for _ in range(3):
+        new = _COUNT_CONNECTOR_RE.sub("", rest).strip()
+        if new == rest:
+            break
+        rest = new
+    topic = rest.strip().rstrip("?.!").strip()
+    return topic or None

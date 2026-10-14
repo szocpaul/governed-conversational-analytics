@@ -19,7 +19,7 @@ from fastapi import APIRouter
 
 from app.ai.answer_program import AnswerProgram
 from app.ai.query_program import QueryProgram
-from app.ai.routing import extract_ticket_id
+from app.ai.routing import extract_count_topic, extract_ticket_id
 from app.ai.retrieval import (
     CountThresholdError,
     RetrievalError,
@@ -173,8 +173,15 @@ def _run_count(trace: Trace, question: str) -> QueryResponse:
     yields a stable dependency error (never a hardcoded default, FR-005); a
     retrieval/embedding failure likewise. Never fabricates a number.
     """
+    # The governed hybrid count searches the content TOPIC (deterministically
+    # extracted), not the whole count question: plainto_tsquery ANDs content
+    # words, so the full question would return a misleading 0 (the word
+    # "ticket" rarely appears in ticket text). If no topic can be extracted,
+    # fall back to the full question text.
+    topic = extract_count_topic(question) or question
+    trace.add("count_topic", f"topic={topic!r}")
     try:
-        result = count_over_content(question, embed_query=_embed_query_text)
+        result = count_over_content(topic, embed_query=_embed_query_text)
     except CountThresholdError as exc:
         trace.add("error", f"count threshold unavailable: {exc}")
         return _response(
