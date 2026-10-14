@@ -113,6 +113,31 @@ login") returns 0 because the structured path counts structured columns
 only; a "count over content" capability is a planned follow-up. See
 `specs/011-classifier-content-routing/runner-report.md`.
 
+**Feature 012 (Count over Content) is COMPLETE (T001-T018, all automatable
+gates passed; final human approval outstanding per the MANUAL GATE
+discipline).** "How many tickets about X" (count-over-content) now returns a
+TRUE count via a governed, read-only, deterministic HYBRID count query
+(lexical `fts @@ plainto_tsquery` OR semantic embedding distance <= a
+calibrated threshold). The count is a true total (NO LIMIT — never capped by
+the retrieval limit of 25), grounded with up to 5 example ticket_ids in a
+sanitized trace. A new `content_count` category in the feature 011
+classifier routes count-over-topic questions; the structured and
+retrieval-list paths are unchanged. The semantic threshold (0.25) was
+calibrated by a deterministic dev-only sweep (dev exact-count accuracy 1.0
+vs 0.2 at neighbouring thresholds — a real optimum), recorded in
+`count-threshold.json` (SHA-256 verified, dev-only calibration IDs, zero
+held-out leakage); the classifier was re-tuned with the approved bounded
+BootstrapFewShot on the extended dev set. Held-out (57 cases, temp 0, cache
+off): count_accuracy 1.0 (5/5 exact), false_count_rate 0.0,
+execution_accuracy 1.0 (no structured regression), routing_accuracy 0.9 /
+false_routing_rate 0.0 (011 gates hold), 0 prohibited effects, 0 disclosures
+(16 security cases). Full gate 664/664. Human-approved correction recorded:
+2 pre-012 routing cases (DEV-RTE-006, EVAL-RTE-006) relabeled
+`route_structured` -> `content_count` to match the approved FR-006 routing,
+and the spec Background ground truth corrected (the "login" hybrid count is
+156, not the earlier lexical-only 88). See
+`specs/012-count-over-content/runner-report.md`.
+
 **Demo UI access (runtime note, 2026-10-10)**: the demo server is currently
 running bound to the Tailscale interface for human review:
 `http://100.118.113.57:8001/` (host `ubuntu-8gb-nbg1-1`, started with

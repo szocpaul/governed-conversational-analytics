@@ -14,7 +14,7 @@ Feature 011 fixed content routing: deep-paraphrase content questions now reach g
 
 Verified ground truths (checked directly on 2026-10-14):
 
-- "login" appears in the text of 88 tickets; SSO Failure (the closest structured sub_category) has 90; Account Access (the category) has 360.
+- "login" matches 156 tickets under the hybrid count (121 lexical + 35 semantic); SSO Failure (the closest structured sub_category) has 90; Account Access (the category) has 360.
 - The structured path can only filter on structured columns (category, sub_category, priority, ...); it cannot count by text content.
 - The content retrieval path returns a ranked list capped at 25 (governed hard cap), not a count.
 - The tickets table has a generated `fts` tsvector column (GIN index) and an `embedding vector(768)` column (HNSW index) from feature 010, both over the allowlisted text fields.
@@ -37,7 +37,7 @@ A user asks "how many tickets about login" (or any count-over-content question, 
 
 **Why this priority**: This is the entire point of the feature. It closes the gap where a whole class of natural questions ("how many tickets about X") currently returns a misleading 0.
 
-**Independent Test**: Ask "how many tickets about login" and verify it returns the true count (88, counting lexical + semantic matches), not 0 and not 25; ask a paraphrase count and verify semantic matches are included; ask a structured count ("how many P1 tickets") and verify it is unchanged. Delivers value standalone.
+**Independent Test**: Ask "how many tickets about login" and verify it returns the true count (156, counting lexical + semantic matches), not 0 and not 25; ask a paraphrase count and verify semantic matches are included; ask a structured count ("how many P1 tickets") and verify it is unchanged. Delivers value standalone.
 
 **Acceptance Scenarios**:
 
@@ -69,7 +69,7 @@ A maintainer calibrates the semantic-match threshold on labeled development case
 ### Edge Cases
 
 - A count-over-content question with zero matches: the count is 0 (a true, grounded zero — distinguishable from the structured path's misleading 0 because the count path actually searched the text).
-- A topic with more matches than the retrieval result limit (e.g. 88 login tickets vs the 25 cap): the count MUST be the true total (88), not the capped list length.
+- A topic with more matches than the retrieval result limit (e.g. 156 login tickets vs the 25 cap): the count MUST be the true total (156), not the capped list length.
 - A paraphrase count question with no exact-word matches: semantic matches within the calibrated threshold are still counted.
 - A structured count question ("how many P1 tickets"): routed to the structured path unchanged — false-count routing to the content count would give a wrong answer.
 - A count-over-content question mis-routed to the structured path: counted in the false-count metric and bounded by the held-out gate.
