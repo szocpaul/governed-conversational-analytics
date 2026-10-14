@@ -61,7 +61,33 @@ completed incrementally as tasks finish (T018 finalizes it).
 
 ## Noise-calibration thresholds (T012)
 
-(pending)
+Two held-out evaluation runs of the CURRENT (pre-tuning, stale-artifact)
+program at temperature 0, cache disabled (`python -m evaluation.run
+--cache=false --output /tmp/eval_cal_N.json`):
+
+| Metric | Run 1 | Run 2 | Noise band |
+|---|---|---|---|
+| routing_accuracy | 0.30 | 0.30 | 0.00 (identical) |
+| false_routing_rate | 0.00 | 0.00 | 0.00 (identical) |
+| execution_accuracy | 0.7857 | 0.7857 | 0.00 (identical) |
+| structural_validity | 0.9512 | 0.9512 | 0.00 (identical) |
+
+At temperature 0 with the response cache disabled the routing decisions are
+deterministic: the run-to-run variance (noise band) is **0.00** for every
+routing-relevant metric. (The low absolute routing_accuracy of 0.30 reflects
+the STALE pre-011 artifact, whose old 3-category demos mis-route content
+questions; this is the gap T013 tuning fixes, not noise.)
+
+Thresholds set ABOVE the noise band (recorded in `evaluation/compare.py`):
+
+- `ROUTING_ACCURACY_THRESHOLD = 0.80` — the tuned router must correctly route
+  at least 8 of the 10 held-out routing cases. Clears the 0.00 noise band and
+  requires the core improvement (deep paraphrases) to be demonstrated.
+- `FALSE_ROUTING_BOUND = 0.20` — at most 20% of labeled structured cases may
+  be mis-routed to a content category. With 2 held-out route_structured
+  cases this means 0 may be mis-routed (1/2 = 0.50 > 0.20), protecting the
+  structured path.
+
 
 ## Routing accuracy / false-routing / structured-regression (T014)
 
