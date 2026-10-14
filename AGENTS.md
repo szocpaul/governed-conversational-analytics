@@ -91,6 +91,28 @@ content-question routing is currently a narrow deterministic regex router
 classifier-based router (separate feature, 011). See
 `specs/010-hybrid-search/runner-report.md`.
 
+**Feature 011 (Classifier-Based Content Routing) is COMPLETE (T001-T018,
+all automatable gates passed; final human approval outstanding per the
+MANUAL GATE discipline).** The narrow regex content router is replaced by a
+single tuned DSPy classifier: `ClassifyQuestion` now routes every question
+via `content_about` / `content_similar` / `supported` / `ambiguous` /
+`unsupported`, so deep-paraphrase content questions (zero shared keywords
+with the target tickets) reach governed retrieval instead of falling
+through to the structured path. A deterministic ticket_id extractor
+(`app/ai/routing.py`) handles similar-mode references; unknown classifier
+output falls back conservatively to the structured path. The retrieval
+motor (010) and the structured planner are untouched. Tuning used the
+approved bounded BootstrapFewShot on 8 dev routing cases only (zero
+held-out leakage; accepted demos DEV-RTE-001..004); GEPA/MIPROv2/SIMBA not
+used. Held-out (51 cases, temp 0, cache off): routing_accuracy 0.9 (>=
+calibrated 0.80), false_routing_rate 0.0 (structured path not degraded),
+execution_accuracy 1.0 (no regression), 0 prohibited effects, 0 disclosures
+(15 security cases). Full gate 622/622. Known limitation (surfaced by
+testing, pre-dates 011): a count over a *topic* ("how many tickets about
+login") returns 0 because the structured path counts structured columns
+only; a "count over content" capability is a planned follow-up. See
+`specs/011-classifier-content-routing/runner-report.md`.
+
 **Demo UI access (runtime note, 2026-10-10)**: the demo server is currently
 running bound to the Tailscale interface for human review:
 `http://100.118.113.57:8001/` (host `ubuntu-8gb-nbg1-1`, started with
