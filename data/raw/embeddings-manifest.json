@@ -1,0 +1,33 @@
+{
+  "artifact_version": "1",
+  "artifact_path": "data/raw/tickets_embeddings.jsonl",
+  "artifact_sha256": "54e33429fdac5fae7e9abf5cdb6e1cbd3aab7bf8f02c66f8927b41467fd2ebdb",
+  "row_count": 2057,
+  "model_id": "models\\embeddinggemma-2-Q8_0.gguf",
+  "quantization": "Q8_0",
+  "embedding_dimension": 768,
+  "source_gguf": "ggml-org/embeddinggemma-2-GGUF",
+  "source_gguf_sha256": "unrecorded",
+  "license": "Apache-2.0",
+  "generator": {
+    "script": "scripts/generate_embeddings.py",
+    "script_sha256": "ec24c682455b3801119a49500ca216ef17c5509060f7e8ca9896e7f7c5c32634",
+    "program_module": "app/ai/embeddings.py",
+    "program_module_sha256": "8424e52b5a093df55de87ab348e60ce609d192710fc834ed66003999ee6f97fd"
+  },
+  "run_config": {
+    "max_retries": 2,
+    "checkpoint_path": "artifacts/tickets_embeddings.checkpoint.jsonl",
+    "retries_used": 0
+  },
+  "created_at": "2026-10-14T06:00:06.621835+00:00",
+  "validation": {
+    "suite_passed": true,
+    "validated_at": "2026-10-14T06:01:03.581367+00:00",
+    "checks": [
+      "schema+coverage",
+      "dimension",
+      "finite-values"
+    ]
+  }
+}
