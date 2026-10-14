@@ -149,6 +149,31 @@ default remains `127.0.0.1:8001` (README quickstart). GraphJin (8081) stays
 localhost-only; the app proxies it. The private LLM endpoint must never be
 exposed in the UI, errors, or traces.
 
+### Possible Follow-ups (not scheduled; recorded for future sessions)
+
+These capability ideas surfaced during features 010-012 and are deliberately
+out of scope for those features. Each needs its own spec (and, where it
+touches tuning, the feature 004 evaluation discipline) before
+implementation:
+
+- **Reranking with the main LLM**: after hybrid retrieval returns its top-N
+  candidates, the pinned Qwen3 model re-ranks them by reading each candidate
+  against the question (question-specific relevance, not just vector
+  distance). Would improve ranking precision for vague queries, but adds a
+  model call per retrieval and is non-deterministic — needs a
+  determinism/latency analysis and a measured quality-gain comparison
+  against the current RRF baseline.
+- **Multi-vector / per-field retrieval**: instead of one vector per ticket
+  (the concatenated text fields), embed `short_description`, `description`,
+  and `resolution_notes` separately so a question can target a specific
+  field (e.g. "how was X resolved?" -> search resolution_notes only).
+  Improves field-targeted queries but triples the index and complicates
+  fusion; the 250 open tickets' NULL resolution_notes need per-field
+  handling.
+- **Grouped count over content**: "how many tickets about X per category" —
+  extends the feature 012 single count to a grouped breakdown. Needs a
+  grouped hybrid count and its own routing/eval cases.
+
 The rules below remain in force for any new work on this repository.
 
 ## Source-of-Truth Precedence
