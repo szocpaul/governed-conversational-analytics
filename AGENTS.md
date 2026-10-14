@@ -62,6 +62,35 @@ and exposed read-only via GraphJin. Full gate: 500/500. See
 `specs/009-synthetic-ticket-texts/runner-report.md`. The hybrid-search
 feature that builds on these texts is a separate follow-up (010).
 
+**Feature 010 (Hybrid Search over Ticket Texts) is COMPLETE (T001-T027,
+all automatable gates passed; final human approval outstanding per the
+MANUAL GATE discipline).** The conversational pipeline can now search the
+*content* of the feature 009 ticket texts, not just the structured columns:
+a maintainer-run offline pipeline embeds each ticket's text
+(short_description + description + resolution_notes) into one
+768-dimensional vector with the pinned local EmbeddingGemma-2 model (Q8_0
+GGUF, separate pinned llama.cpp instance with `--embeddings`, no fallback),
+checkpointed and resumable, with a provenance manifest
+(`data/raw/tickets_embeddings.jsonl` + `embeddings-manifest.json`, SHA-256
+recorded). The pinned PostgreSQL image switched to `pgvector/pgvector:pg16`
+(PG 16.15, vector 0.8.7); `itsm.tickets` gained an `embedding vector(768)`
+column plus a generated `fts` tsvector column with HNSW + GIN indexes,
+imported atomically. At query time a new governed, read-only retrieval
+channel in the app layer (human decision 1 — GraphJin's catalog-level
+semantic search was evaluated and rejected) runs lexical ts_rank + semantic
+pgvector cosine ranking over an explicit allowlist, fuses them
+deterministically (RRF, k=60), enforces the result limit and the read-only
+role, and returns a ranked set of ticket references with a sanitized
+retrieval trace. Retrieval is an opt-in planner tool; the structured query
+path is unchanged. Held-out eval 41/41 (validity 1.0, accuracy 1.0, 0
+prohibited, 0 disclosure); full gate 571/571. Known limitation recorded in
+the runner report: `source_gguf_sha256` is `unrecorded` (operator supplies
+it before final artifact approval per FR-005/007). Known follow-up: the
+content-question routing is currently a narrow deterministic regex router
+(`app/api/routes.py`); deep paraphrase content questions need a tuned
+classifier-based router (separate feature, 011). See
+`specs/010-hybrid-search/runner-report.md`.
+
 **Demo UI access (runtime note, 2026-10-10)**: the demo server is currently
 running bound to the Tailscale interface for human review:
 `http://100.118.113.57:8001/` (host `ubuntu-8gb-nbg1-1`, started with
