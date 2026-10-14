@@ -1,0 +1,16 @@
+{
+  "feature": "012-count-over-content",
+  "task": "T002",
+  "created_at": "2026-10-14T18:34:48.584364+00:00",
+  "chat": {
+    "requested_model_id": "models\\Qwen3.8-27B-UD-Q4_K_M.gguf",
+    "present": true,
+    "smoke_ok": true
+  },
+  "embedding": {
+    "requested_model_id": "models\\embeddinggemma-2-Q8_0.gguf",
+    "present": true,
+    "dimension": 768,
+    "smoke_ok": true
+  }
+}
