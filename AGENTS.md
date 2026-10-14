@@ -8,8 +8,8 @@ The repository files are the source of truth. Do not reconstruct requirements fr
 
 ## Project Status (as of 2026-10-11)
 
-**Features 001-006, 008, and 009 are COMPLETE and human-approved (all MANUAL
-GATEs passed).** Project v2 is done: 60/60 tasks across features 001-005,
+**Features 001-006, 008, 009, 010, 011, and 012 are COMPLETE and
+human-approved (all MANUAL GATEs passed).** Project v2 is done: 60/60 tasks across features 001-005,
 plus feature 006 (DSPy 3.2.1 → 3.4.0 upgrade with full re-baseline and
 re-optimization, T001-T019), plus feature 008 (Query Discovery UI,
 T001-T017), plus feature 009 (Synthetic Ticket Texts, T001-T024).
@@ -62,9 +62,9 @@ and exposed read-only via GraphJin. Full gate: 500/500. See
 `specs/009-synthetic-ticket-texts/runner-report.md`. The hybrid-search
 feature that builds on these texts is a separate follow-up (010).
 
-**Feature 010 (Hybrid Search over Ticket Texts) is COMPLETE (T001-T027,
-all automatable gates passed; final human approval outstanding per the
-MANUAL GATE discipline).** The conversational pipeline can now search the
+**Feature 010 (Hybrid Search over Ticket Texts) is COMPLETE and
+human-approved (T001-T027, all gates passed, MANUAL GATE approved
+2026-10-14).** The conversational pipeline can now search the
 *content* of the feature 009 ticket texts, not just the structured columns:
 a maintainer-run offline pipeline embeds each ticket's text
 (short_description + description + resolution_notes) into one
@@ -83,17 +83,18 @@ deterministically (RRF, k=60), enforces the result limit and the read-only
 role, and returns a ranked set of ticket references with a sanitized
 retrieval trace. Retrieval is an opt-in planner tool; the structured query
 path is unchanged. Held-out eval 41/41 (validity 1.0, accuracy 1.0, 0
-prohibited, 0 disclosure); full gate 571/571. Known limitation recorded in
-the runner report: `source_gguf_sha256` is `unrecorded` (operator supplies
-it before final artifact approval per FR-005/007). Known follow-up: the
+prohibited, 0 disclosure); full gate 571/571. The `source_gguf_sha256` is
+recorded in `data/raw/embeddings-manifest.json`
+(6f1bd4ac6c5df7444f9cca7ca36cafe6cfa34cd6f49fefb1e0b4be8143aed8bc),
+supplied by the operator at final artifact approval per FR-005/007. Known follow-up: the
 content-question routing is currently a narrow deterministic regex router
 (`app/api/routes.py`); deep paraphrase content questions need a tuned
 classifier-based router (separate feature, 011). See
 `specs/010-hybrid-search/runner-report.md`.
 
-**Feature 011 (Classifier-Based Content Routing) is COMPLETE (T001-T018,
-all automatable gates passed; final human approval outstanding per the
-MANUAL GATE discipline).** The narrow regex content router is replaced by a
+**Feature 011 (Classifier-Based Content Routing) is COMPLETE and
+human-approved (T001-T018, all gates passed, MANUAL GATE approved
+2026-10-14).** The narrow regex content router is replaced by a
 single tuned DSPy classifier: `ClassifyQuestion` now routes every question
 via `content_about` / `content_similar` / `supported` / `ambiguous` /
 `unsupported`, so deep-paraphrase content questions (zero shared keywords
@@ -113,9 +114,8 @@ login") returns 0 because the structured path counts structured columns
 only; a "count over content" capability is a planned follow-up. See
 `specs/011-classifier-content-routing/runner-report.md`.
 
-**Feature 012 (Count over Content) is COMPLETE (T001-T018, all automatable
-gates passed; final human approval outstanding per the MANUAL GATE
-discipline).** "How many tickets about X" (count-over-content) now returns a
+**Feature 012 (Count over Content) is COMPLETE and human-approved
+(T001-T018, all gates passed, MANUAL GATE approved 2026-10-14).** "How many tickets about X" (count-over-content) now returns a
 TRUE count via a governed, read-only, deterministic HYBRID count query
 (lexical `fts @@ plainto_tsquery` OR semantic embedding distance <= a
 calibrated threshold). The count is a true total (NO LIMIT — never capped by
