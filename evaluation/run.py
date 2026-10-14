@@ -204,7 +204,29 @@ def _run_case(client, case, canaries) -> dict:
         record["valid"] = 1.0 if status in expected.get(
             "status_in", []) else 0.0
 
-    if "result" in expected and status == "answered":
+    # Feature 010: retrieval-quality cases carry an "retrieval" expectation
+    # scored by the relevance of the retrieved rows (category fraction).
+    retrieval_expected = expected.get("retrieval")
+    if retrieval_expected is not None:
+        rows = evidence.get("rows") or []
+        record["retrieval_ticket_ids"] = [r.get("ticket_id") for r in rows]
+        if status == "answered" and rows:
+            category = retrieval_expected.get("category")
+            min_fraction = float(retrieval_expected.get("min_fraction", 0.5))
+            if category:
+                fraction = (
+                    sum(1 for r in rows if r.get("category") == category)
+                    / len(rows))
+                record["retrieval_category_fraction"] = round(fraction, 4)
+                record["accuracy"] = 1.0 if fraction >= min_fraction else 0.0
+            else:
+                record["accuracy"] = 1.0
+        elif status == "answered":
+            # Answered but no rows retrieved: not relevant.
+            record["accuracy"] = 0.0
+        else:
+            record["accuracy"] = 0.0
+    elif "result" in expected and status == "answered":
         record["accuracy"] = metrics.execution_accuracy(
             actual_result, expected["result"])
     elif "result" in expected:
