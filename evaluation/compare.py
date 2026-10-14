@@ -24,6 +24,12 @@ VALIDITY_THRESHOLD = 0.90
 ACCURACY_THRESHOLD = 0.80
 ACCURACY_DEGRADATION_PP = 0.05  # 5 percentage points
 
+# Feature 011 routing gates (calibrated after the noise run, T012). The
+# routing-accuracy threshold must clear the observed noise band; the
+# false-routing bound caps structured questions mis-routed to retrieval.
+ROUTING_ACCURACY_THRESHOLD = 0.80
+FALSE_ROUTING_BOUND = 0.20
+
 # Metadata keys that must match for a comparable run; a change requires a new
 # baseline (US3). Secrets are never recorded.
 _COMPAT_KEYS = ["model_id", "eval_set_version"]
@@ -73,6 +79,20 @@ def compare_artifacts(baseline: dict, current: dict) -> dict:
                 f"execution accuracy degraded by "
                 f"{round((base_acc - accuracy) * 100, 2)}pp "
                 f"(>{ACCURACY_DEGRADATION_PP * 100:.0f}pp) (SC-005)")
+
+    # --- Feature 011 routing gates ---
+    routing_accuracy = _metric(current, "routing_accuracy")
+    if routing_accuracy is not None:
+        if routing_accuracy < ROUTING_ACCURACY_THRESHOLD:
+            reasons.append(
+                f"routing accuracy {routing_accuracy} below threshold "
+                f"{ROUTING_ACCURACY_THRESHOLD} (SC-002)")
+    false_routing = _metric(current, "false_routing_rate")
+    if false_routing is not None:
+        if false_routing > FALSE_ROUTING_BOUND:
+            reasons.append(
+                f"false-routing rate {false_routing} above bound "
+                f"{FALSE_ROUTING_BOUND} (SC-004)")
 
     # --- Security: any prohibited effect or disclosure fails ---
     if (_metric(current, "prohibited_effects") or 0) > 0:

@@ -94,6 +94,39 @@ def build_trainset(extra_cases=None) -> list[dspy.Example]:
     return trainset
 
 
+def build_routing_trainset() -> list[dspy.Example]:
+    """Build the routing-tuning trainset from development routing cases ONLY.
+
+    Each example carries the labeled routing category (and, for
+    content_similar, the labeled reference ticket_id). Only development
+    route_* cases are consumed; any held-out ID raises (SC-007, FR-009).
+    """
+    dev = load_dev_cases()
+    held_ids = set(load_held_out_cases().ids)
+
+    trainset = []
+    for c in dev.cases:
+        if c.id in held_ids:
+            raise ValueError(
+                f"held-out case {c.id!r} must not enter optimization")
+        if not c.category.startswith("route_"):
+            continue
+        expected = c.expected or {}
+        route = expected.get("route")
+        if not route:
+            continue
+        ex = dspy.Example(
+            case_id=c.id,
+            question=c.question,
+            expected_route=route,
+            expected_ticket_id=expected.get("ticket_id"),
+        ).with_inputs("question")
+        trainset.append(ex)
+
+    assert_no_held_out_leakage([e.case_id for e in trainset])
+    return trainset
+
+
 # ---------------------------------------------------------------------------
 # Binary optimizer metric
 # ---------------------------------------------------------------------------
@@ -184,6 +217,29 @@ def text_to_query_metric(example, pred, trace=None) -> float:
     return 1.0
 
 
+def routing_metric(example, pred, trace=None) -> float:
+    """Binary routing metric (feature 011): 1.0 on a correct routing decision.
+
+    Returns 1.0 when the classifier's category matches the labeled route
+    (and, for content_similar, the deterministically extracted ticket_id
+    matches the labeled reference); else 0.0. No partial credit. The
+    predicted category is normalized with the conservative fallback so an
+    unparseable output is scored as the structured fallback, never as a
+    correct content route.
+    """
+    from app.ai.routing import extract_ticket_id, normalize_category
+    from evaluation import metrics as _m
+
+    predicted = normalize_category(getattr(pred, "category", None))
+    expected_route = getattr(example, "expected_route", None)
+    expected_ticket_id = getattr(example, "expected_ticket_id", None)
+    extracted = extract_ticket_id(getattr(example, "question", ""))
+    return _m.routing_correct(
+        expected_route, predicted,
+        expected_ticket_id=expected_ticket_id,
+        extracted_ticket_id=extracted)
+
+
 # ---------------------------------------------------------------------------
 # Compilation (T006)
 # ---------------------------------------------------------------------------
@@ -224,6 +280,76 @@ def compile_program(program=None, trainset=None):
     return optimized, {
         "optimizer": "dspy.BootstrapFewShot",
         "config": cfg,
+        "input_case_ids": consumed_ids,
+        "trainset_size": len(trainset),
+    }
+
+
+class _ClassifierOnlyProgram(dspy.Module):
+    """A classifier-only module for routing tuning (feature 011).
+
+    BootstrapFewShot tunes the ClassifyQuestion predictor on routing cases;
+    the structured planner is NOT exercised (routing cases carry no plan
+    labels). The tuned classify state is then merged into a QueryProgram for
+    saving (the structured path stays frozen).
+    """
+
+    def __init__(self):
+        super().__init__()
+        from app.ai.signatures import ClassifyQuestion
+        self.classify = dspy.Predict(ClassifyQuestion)
+
+    def forward(self, question: str) -> dspy.Prediction:
+        return self.classify(question=question)
+
+
+def compile_routing_program(trainset=None):
+    """Tune the classifier on development routing cases with BootstrapFewShot.
+
+    Returns (query_program_with_tuned_classify, run_metadata). The tuned
+    classify demos are merged into a QueryProgram that preserves the existing
+    plan demos (the structured path is frozen, FR-011). Raises RuntimeError
+    when there are too few development routing examples. Never consumes
+    held-out cases (SC-007).
+    """
+    if trainset is None:
+        trainset = build_routing_trainset()
+    if len(trainset) < 1:
+        raise RuntimeError("no development routing cases available for tuning")
+
+    cfg = optimizer_config()
+    optimizer = dspy.BootstrapFewShot(
+        metric=routing_metric,
+        metric_threshold=cfg["metric_threshold"],
+        max_bootstrapped_demos=cfg["max_bootstrapped_demos"],
+        max_labeled_demos=cfg["max_labeled_demos"],
+        max_rounds=cfg["max_rounds"],
+        max_errors=cfg["max_errors"],
+    )
+    student = _ClassifierOnlyProgram()
+    tuned = optimizer.compile(student, trainset=trainset)
+
+    consumed_ids = [e.case_id for e in trainset]
+    assert_no_held_out_leakage(consumed_ids)
+
+    # Merge the tuned classify predictor into a QueryProgram, preserving the
+    # existing plan demos (structured path frozen). Load the current artifact
+    # for the plan state when present; otherwise use the base plan.
+    from app.ai.query_program import QueryProgram
+    program = QueryProgram()
+    if os.path.exists(OPTIMIZED_PROGRAM_PATH):
+        try:
+            program.load(OPTIMIZED_PROGRAM_PATH)
+        except Exception:  # noqa: BLE001 - fall back to base plan
+            program = QueryProgram()
+    # Replace ONLY the classify predictor with the tuned one (demos + sig).
+    tuned_classify = list(tuned.predictors())[0]
+    program.classify = tuned_classify
+
+    return program, {
+        "optimizer": "dspy.BootstrapFewShot",
+        "config": cfg,
+        "metric": "routing_metric",
         "input_case_ids": consumed_ids,
         "trainset_size": len(trainset),
     }
@@ -376,6 +502,83 @@ def run_optimization(output_program: str = OPTIMIZED_PROGRAM_PATH,
         }
     except Exception as exc:  # noqa: BLE001
         run_meta["errors"].append(f"optimization failed: {exc}")
+        os.makedirs(os.path.dirname(run_artifact), exist_ok=True)
+        with open(run_artifact, "w") as f:
+            json.dump(run_meta, f, indent=2)
+        print(json.dumps({"error": str(exc)}))
+        return 1
+
+    os.makedirs(os.path.dirname(run_artifact), exist_ok=True)
+    with open(run_artifact, "w") as f:
+        json.dump(run_meta, f, indent=2)
+    print(json.dumps({"compiled": True,
+                      "trainset_size": len(trainset),
+                      "accepted_demos": run_meta["accepted_demo_ids"],
+                      "program_sha256": run_meta["output_program_sha256"]},
+                     indent=2))
+    return 0
+
+
+def run_routing_optimization(output_program: str = OPTIMIZED_PROGRAM_PATH,
+                             run_artifact: str = OPTIMIZATION_RUN_PATH) -> int:
+    """Tune the classifier on development routing cases and save artifacts.
+
+    Returns 0 on success, 1 on error. Never uses held-out cases (SC-007).
+    Records provenance (optimizer config, accepted demo IDs, artifact hash,
+    versions) in artifacts/optimization-run.json.
+    """
+    from dotenv import load_dotenv
+    load_dotenv()
+    os.environ["LLM_TEMPERATURE"] = "0"
+    os.environ["LLM_CACHE"] = "false"
+
+    from app.ai.llm import LLMConfig, configure_dspy
+    configure_dspy(LLMConfig.from_env())
+
+    trainset = build_routing_trainset()
+    input_ids = [e.case_id for e in trainset]
+    assert_no_held_out_leakage(input_ids)
+
+    run_meta = {
+        "optimizer": "dspy.BootstrapFewShot",
+        "config": optimizer_config(),
+        "metric": "routing_metric",
+        "input_case_ids": input_ids,
+        "trainset_size": len(trainset),
+        "held_out_ids_consumed": 0,
+        "errors": [],
+        "accepted_demo_ids": [],
+        "output_program_sha256": None,
+        "versions": {},
+    }
+
+    try:
+        program, meta = compile_routing_program(trainset=trainset)
+        os.makedirs(os.path.dirname(output_program), exist_ok=True)
+        program.save(output_program)
+
+        # Map each accepted classify demo's question back to its dev case ID.
+        q_to_id = {e.question: e.case_id for e in trainset}
+        accepted = []
+        try:
+            for predictor in program.predictors():
+                for demo in getattr(predictor, "demos", []) or []:
+                    cid = q_to_id.get(getattr(demo, "question", None))
+                    if cid:
+                        accepted.append(cid)
+        except Exception:  # noqa: BLE001
+            pass
+        run_meta["accepted_demo_ids"] = sorted(set(accepted))
+        assert_no_held_out_leakage(run_meta["accepted_demo_ids"])
+        run_meta["output_program_sha256"] = _sha256(output_program)
+        run_meta["versions"] = {
+            "dspy": dspy.__version__,
+            "model_id": os.environ.get("LLM_MODEL", ""),
+            "temperature": 0.0,
+            "cache": False,
+        }
+    except Exception as exc:  # noqa: BLE001
+        run_meta["errors"].append(f"routing optimization failed: {exc}")
         os.makedirs(os.path.dirname(run_artifact), exist_ok=True)
         with open(run_artifact, "w") as f:
             json.dump(run_meta, f, indent=2)

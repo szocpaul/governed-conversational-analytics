@@ -244,3 +244,69 @@ def latency_stats(latencies: list[float]) -> dict:
         "min": round(vals[0], 2),
         "max": round(vals[-1], 2),
     }
+
+
+# ---------------------------------------------------------------------------
+# Routing metrics (feature 011): routing accuracy + false-routing rate
+# ---------------------------------------------------------------------------
+
+#: The labeled route value that counts as "structured" for the false-routing
+#: guard (a structured question mis-routed to a content category).
+ROUTE_STRUCTURED = "supported"
+
+#: Content categories (a structured question routed to one of these is a
+#: false-routing).
+_CONTENT_ROUTES = frozenset({"content_about", "content_similar"})
+
+
+def routing_correct(expected_route: str, predicted_category: str,
+                    *, expected_ticket_id=None,
+                    extracted_ticket_id=None) -> float:
+    """Return 1.0 when the routing decision matches the label; else 0.0.
+
+    Binary (no partial credit), mirroring the house metric discipline. The
+    predicted category must equal the labeled route; for content_similar the
+    deterministically extracted ticket_id must also match the labeled
+    reference. Deterministic; no model involved.
+    """
+    if not expected_route or predicted_category is None:
+        return 0.0
+    if str(predicted_category).strip().lower() != str(expected_route).strip().lower():
+        return 0.0
+    if str(expected_route).strip().lower() == "content_similar":
+        if expected_ticket_id is None or extracted_ticket_id is None:
+            return 0.0
+        if int(expected_ticket_id) != int(extracted_ticket_id):
+            return 0.0
+    return 1.0
+
+
+def routing_accuracy(per_case: list[dict]) -> float | None:
+    """Fraction of routing cases correctly routed.
+
+    Each case dict carries "routing_correct" (1.0/0.0). Returns None when no
+    routing cases were scored.
+    """
+    vals = [c["routing_correct"] for c in per_case
+            if c.get("routing_correct") is not None]
+    if not vals:
+        return None
+    return round(sum(vals) / len(vals), 4)
+
+
+def false_routing_rate(per_case: list[dict]) -> float | None:
+    """Fraction of labeled structured cases mis-routed to a content category.
+
+    Only cases whose labeled route is the structured category are considered;
+    a false-routing is one whose predicted category is a content category.
+    Returns None when no structured routing cases were scored.
+    """
+    structured = [c for c in per_case
+                  if c.get("expected_route") == ROUTE_STRUCTURED
+                  and c.get("predicted_category") is not None]
+    if not structured:
+        return None
+    misrouted = sum(1 for c in structured
+                    if str(c["predicted_category"]).strip().lower()
+                    in _CONTENT_ROUTES)
+    return round(misrouted / len(structured), 4)
