@@ -9,6 +9,10 @@ from __future__ import annotations
 
 import dspy
 
+# Versioned instruction marker: bumped on any change to a signature docstring
+# or output field (house discipline; feature 011 extended ClassifyQuestion).
+PROMPT_VERSION = "2"
+
 # ---------------------------------------------------------------------------
 # Classification
 # ---------------------------------------------------------------------------
@@ -17,15 +21,30 @@ import dspy
 class ClassifyQuestion(dspy.Signature):
     """Classify a natural-language ITSM analytics question.
 
-    Decide whether the question is a supported analytical question over the
-    governed ITSM dataset (tickets, merchants, agents), is materially
-    ambiguous and needs clarification, or is unsupported/out of scope.
+    Route the question to exactly ONE category so the governed pipeline can
+    handle it: content_about, content_similar, supported, ambiguous, or
+    unsupported.
 
-    A question is SUPPORTED only when it can be answered by ONE governed
-    query: a single list of rows, a single aggregate (count/sum/avg/min/max/
-    ratio) with optional filters and ordering, or a grouped breakdown
-    (group_by over 1-3 fields with one aggregate, optionally filtered
-    per-group with having).
+    A question is CONTENT_ABOUT when it asks to FIND tickets by what they are
+    ABOUT — their text content (the subject, symptoms, or situation described
+    in the ticket) — rather than by a structured column value. This includes
+    DEEP PARAPHRASES that share no keywords with the tickets: route by
+    MEANING, not by word shape. Examples: "tickets about login problems",
+    "customers unable to complete a purchase because their card was
+    rejected", "people getting locked out and unable to prove who they are at
+    sign-in", "slow to notify users".
+
+    A question is CONTENT_SIMILAR when it asks for tickets SIMILAR to a
+    referenced ticket (a ticket id is present or implied). Examples:
+    "tickets similar to 847207", "find tickets like 847203".
+
+    A question is SUPPORTED when it can be answered by ONE governed
+    structured query: a single list of rows, a single aggregate (count/sum/
+    avg/min/max/ratio) with optional filters and ordering, or a grouped
+    breakdown (group_by over 1-3 fields with one aggregate, optionally
+    filtered per-group with having). A COUNT, AGGREGATE, or GROUPED BREAKDOWN
+    question is SUPPORTED even when it mentions a topic: "how many tickets
+    are about login" asks for a COUNT, so it is supported, NOT content_about.
 
     Classify as AMBIGUOUS when the question asks for several things at once
     (multi-part, e.g. "which agent is best AND how many tickets"), because a
@@ -35,11 +54,17 @@ class ClassifyQuestion(dspy.Signature):
     Classify as UNSUPPORTED when the question needs query shapes the schema
     cannot express: joins across entities in one result, subqueries, unions,
     or data outside the governed dataset.
+
+    When you are uncertain whether a question is content_about or a
+    structured analytical question, prefer SUPPORTED (the conservative
+    default): a missed content question then yields a clarification rather
+    than a wrong answer.
     """
 
     question: str = dspy.InputField(desc="the user's natural-language question")
     category: str = dspy.OutputField(
-        desc="one of: supported, ambiguous, unsupported")
+        desc="one of: content_about, content_similar, supported, ambiguous, "
+             "unsupported")
     rationale: str = dspy.OutputField(
         desc="one short sentence explaining the classification")
 

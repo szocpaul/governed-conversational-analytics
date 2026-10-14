@@ -19,6 +19,7 @@ from fastapi import APIRouter
 
 from app.ai.answer_program import AnswerProgram
 from app.ai.query_program import QueryProgram
+from app.ai.routing import extract_ticket_id
 from app.ai.retrieval import (
     RetrievalError,
     RetrievalRequest,
@@ -82,40 +83,11 @@ def _make_graphjin_client() -> GraphJinClient:
 
 
 # ---------------------------------------------------------------------------
-# Feature 010: governed hybrid retrieval (opt-in per question type, research
-# R9). A deterministic router recognizes the two content-question shapes and
-# routes them to the governed retrieval tool; every other question flows to
-# the structured GraphJin path UNCHANGED.
+# Feature 011: content routing is decided by the tuned ClassifyQuestion (ONE
+# classifier routes every question); the feature 010 regex router is removed.
+# The deterministic ticket_id extractor and category dispatch live in
+# app/ai/routing.py. Governed retrieval itself (feature 010) is unchanged.
 # ---------------------------------------------------------------------------
-
-import re as _re
-
-# "tickets about X" / "show me tickets about X" / "tickets about login problems"
-_ABOUT_RE = _re.compile(
-    r"\btickets?\s+(?:about|regarding|concerning|related to|dealing with)\s+"
-    r"(?P<query>.+?)\??\s*$", _re.IGNORECASE)
-# "tickets similar to ticket 847203" / "similar to ticket 847203"
-_SIMILAR_RE = _re.compile(
-    r"\b(?:tickets?\s+)?(?:similar|like)\s+(?:to\s+)?ticket\s+"
-    r"(?P<tid>\d+)\b", _re.IGNORECASE)
-
-
-def _route_content_question(question: str) -> RetrievalRequest | None:
-    """Return a governed retrieval request for a content question, else None.
-
-    Deterministic and opt-in: only the two content-question shapes route to
-    retrieval; everything else returns None so the structured path handles it
-    exactly as before.
-    """
-    similar = _SIMILAR_RE.search(question)
-    if similar:
-        return validate_retrieval_request(
-            {"mode": "similar", "ticket_id": int(similar.group("tid"))})
-    about = _ABOUT_RE.search(question)
-    if about:
-        return validate_retrieval_request(
-            {"mode": "about", "query_text": about.group("query").strip()})
-    return None
 
 
 def _embed_query_text(text: str) -> list[float]:
@@ -231,14 +203,6 @@ def _query_inner(req: QuestionRequest) -> QueryResponse:
                   f"telemetry category={signal.category} "
                   f"patterns={len(signal.matched_patterns)}")
 
-    # 0b. Feature 010: opt-in governed retrieval for content questions.
-    # Only the two content-question shapes route here; every other question
-    # flows to the structured GraphJin path below UNCHANGED.
-    content_req = _route_content_question(req.question)
-    if content_req is not None:
-        trace.add("classified", f"content question (mode={content_req.mode})")
-        return _run_retrieval(content_req, trace, req.question)
-
     # 1. Classify + plan (DSPy, pinned local model; no fallback).
     try:
         qp = _make_query_program()
@@ -269,7 +233,35 @@ def _query_inner(req: QuestionRequest) -> QueryResponse:
     classification = planned.classification
     trace.add("classified", classification)
 
-    # 2. Ambiguity / unsupported -> stable categories, no query executed.
+    # 2a. Feature 011: content categories route to governed retrieval. The
+    # classifier decided the mode; the reference ticket_id for similar-mode
+    # is extracted DETERMINISTICALLY (never by the model). A missing id
+    # yields a stable clarification (never fabricates). The retrieval path
+    # itself (feature 010) is unchanged.
+    if classification == "content_about":
+        content_req = validate_retrieval_request(
+            {"mode": "about", "query_text": req.question})
+        trace.add("routed", "content_about -> governed retrieval")
+        return _run_retrieval(content_req, trace, req.question)
+    if classification == "content_similar":
+        ticket_id = extract_ticket_id(req.question)
+        if ticket_id is None:
+            trace.add("clarification",
+                      "content_similar but no reference ticket_id found")
+            return _response(
+                "clarification",
+                "Which ticket should I find similar tickets to? Please "
+                "include the reference ticket id.",
+                trace,
+            )
+        content_req = validate_retrieval_request(
+            {"mode": "similar", "ticket_id": ticket_id})
+        trace.add("routed",
+                  f"content_similar -> governed retrieval (ticket_id="
+                  f"{ticket_id})")
+        return _run_retrieval(content_req, trace, req.question)
+
+    # 2b. Ambiguity / unsupported -> stable categories, no query executed.
     if classification == "ambiguous":
         trace.add("clarification", "material ambiguity; no query executed")
         return _response(

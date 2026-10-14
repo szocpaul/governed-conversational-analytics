@@ -12,6 +12,7 @@ import re
 import dspy
 from pydantic import ValidationError as PydanticValidationError
 
+from app.ai.routing import normalize_category
 from app.ai.signatures import ClassifyQuestion, PlanQuery
 from app.api.schemas import StructuredQueryRequest
 from app.security.errors import UnsupportedQuestionError
@@ -137,7 +138,11 @@ class QueryProgram(dspy.Module):
 
     def forward(self, question: str) -> dspy.Prediction:
         cls = self.classify(question=question)
-        category = str(cls.category).strip().lower()
+        # Normalize the category with the conservative fallback: unknown or
+        # unparseable output routes to the structured path (feature 011,
+        # research R3). Content categories (content_about/content_similar)
+        # route to governed retrieval and never reach the structured planner.
+        category = normalize_category(cls.category)
         if category != "supported":
             return dspy.Prediction(
                 classification=category,
