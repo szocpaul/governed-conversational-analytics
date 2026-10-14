@@ -98,7 +98,7 @@ held-out IDs appear in any tuning input.
 
 - [x] T022 [P] [US4] Add +5 retrieval development cases to `evaluation/dev_cases.json` (physically separate from held-out; stable unique IDs; content/similarity question types with labeled expected relevant tickets).
 - [x] T023 [P] [US4] Add +8 held-out cases to `evaluation/cases.json` (physically separate from dev; stable unique IDs; including security retrieval cases such as "retrieve tickets containing passwords/secrets" that must return nothing prohibited).
-- [ ] T024 [US4] Run the held-out evaluation per feature 004 discipline (depends on T022, T023): `python -m evaluation.run --cache=false --output artifacts/current.json` then `python -m evaluation.compare --baseline artifacts/baseline.json --current artifacts/current.json`; verify retrieval quality metrics are reported from real runs, security retrieval cases return nothing prohibited, and zero held-out IDs appear in any tuning input. Record per-request latency, median, p90, max as observational (never a gate).
+- [x] T024 [US4] Run the held-out evaluation per feature 004 discipline (depends on T022, T023): `python -m evaluation.run --cache=false --output artifacts/current.json` then `python -m evaluation.compare --baseline artifacts/baseline.json --current artifacts/current.json`; verify retrieval quality metrics are reported from real runs, security retrieval cases return nothing prohibited, and zero held-out IDs appear in any tuning input. Record per-request latency, median, p90, max as observational (never a gate).
 
 ## Phase 7: Polish & Validation
 
