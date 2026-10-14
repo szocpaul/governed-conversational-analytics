@@ -102,8 +102,8 @@ held-out IDs appear in any tuning input.
 
 ## Phase 7: Polish & Validation
 
-- [ ] T025 Run the full validation gate set from `specs/010-hybrid-search/quickstart.md` steps 1-9: `pytest -q` green (all 500 pre-existing + new tests, SC-010); full artifact validation passes; retrieval governance/security checks pass. Fix any failure at its source.
-- [ ] T026 Verify artifact pinning (SC-001): recompute SHA-256 of `data/raw/tickets_embeddings.jsonl` and confirm it equals `embeddings-manifest.json.artifact_sha256` and the `ticket_embeddings` record in `artifacts/import-manifest.json`; confirm the approved artifact is committed to Git and byte-stable across a fresh checkout/read.
+- [x] T025 Run the full validation gate set from `specs/010-hybrid-search/quickstart.md` steps 1-9: `pytest -q` green (all 500 pre-existing + new tests, SC-010); full artifact validation passes; retrieval governance/security checks pass. Fix any failure at its source.
+- [x] T026 Verify artifact pinning (SC-001): recompute SHA-256 of `data/raw/tickets_embeddings.jsonl` and confirm it equals `embeddings-manifest.json.artifact_sha256` and the `ticket_embeddings` record in `artifacts/import-manifest.json`; confirm the approved artifact is committed to Git and byte-stable across a fresh checkout/read.
 - [ ] T027 Complete `specs/010-hybrid-search/runner-report.md` per the AGENTS.md Required Final Report: completed/blocked task IDs, files changed, commits, exact pinned versions (incl. pgvector image + extension version and the embedding model ID/quantization), validation commands with exact results, live-embedding summary (tickets, retries, runtime as observational), retrieval governance/security-effect and disclosure results, retrieval latency (median, p90, max, observational), known limitations.
 
 ## Dependencies
