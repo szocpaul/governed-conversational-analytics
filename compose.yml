@@ -2,7 +2,7 @@ name: itsm-foundation
 
 services:
   postgres:
-    image: postgres:16.10-alpine
+    image: pgvector/pgvector:pg16   # pinned; provides the vector extension (0.8.7)
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}

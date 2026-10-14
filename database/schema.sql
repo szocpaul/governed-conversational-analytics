@@ -2,6 +2,11 @@
 -- Idempotent: safe to run multiple times.
 CREATE SCHEMA IF NOT EXISTS itsm;
 
+-- GENERATED (feature 010): the vector extension is provided by the pinned
+-- pgvector/pgvector:pg16 image (pgvector 0.8.7); required for the embedding
+-- column and HNSW index below.
+CREATE EXTENSION IF NOT EXISTS vector;
+
 CREATE TABLE IF NOT EXISTS itsm.merchants (
     merchant_id   integer      PRIMARY KEY,
     merchant_name text         NOT NULL,
@@ -44,7 +49,16 @@ CREATE TABLE IF NOT EXISTS itsm.tickets (
     -- GENERATED (feature 009, synthetic text from pinned artifact data/raw/tickets_texts.jsonl)
     description         text,
     -- GENERATED (feature 009, synthetic text from pinned artifact data/raw/tickets_texts.jsonl)
-    resolution_notes    text
+    resolution_notes    text,
+    -- GENERATED (feature 010, embedding from pinned artifact data/raw/tickets_embeddings.jsonl)
+    embedding           vector(768),
+    -- GENERATED (feature 010, full-text search over the three generated text fields)
+    fts                 tsvector GENERATED ALWAYS AS (
+        to_tsvector('english',
+          coalesce(short_description, '') || ' ' ||
+          coalesce(description, '')       || ' ' ||
+          coalesce(resolution_notes, ''))
+    ) STORED
 );
 
 -- GENERATED (feature 009): idempotent column adds for databases initialized
@@ -54,8 +68,26 @@ ALTER TABLE itsm.tickets ADD COLUMN IF NOT EXISTS short_description text;
 ALTER TABLE itsm.tickets ADD COLUMN IF NOT EXISTS description text;
 ALTER TABLE itsm.tickets ADD COLUMN IF NOT EXISTS resolution_notes text;
 
+-- GENERATED (feature 010): idempotent column adds for databases initialized
+-- before the embedding/fts columns existed (same dual discipline as 009).
+ALTER TABLE itsm.tickets ADD COLUMN IF NOT EXISTS embedding vector(768);
+ALTER TABLE itsm.tickets ADD COLUMN IF NOT EXISTS fts tsvector
+    GENERATED ALWAYS AS (
+        to_tsvector('english',
+          coalesce(short_description, '') || ' ' ||
+          coalesce(description, '')       || ' ' ||
+          coalesce(resolution_notes, ''))
+    ) STORED;
+
 CREATE INDEX IF NOT EXISTS idx_tickets_merchant_id       ON itsm.tickets (merchant_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_assigned_agent_id ON itsm.tickets (assigned_agent_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_priority          ON itsm.tickets (priority);
 CREATE INDEX IF NOT EXISTS idx_tickets_category          ON itsm.tickets (category);
 CREATE INDEX IF NOT EXISTS idx_tickets_created_at        ON itsm.tickets (created_at);
+
+-- GENERATED (feature 010): HNSW index on the embedding (cosine operator
+-- class) and a GIN index on the generated fts column.
+CREATE INDEX IF NOT EXISTS tickets_embedding_hnsw
+    ON itsm.tickets USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS tickets_fts_gin
+    ON itsm.tickets USING gin (fts);
