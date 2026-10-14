@@ -15,3 +15,8 @@ __pycache__/
 # Deleted on successful completion; never committed — the pinned artifact is
 # data/raw/tickets_texts.jsonl. (Local sample outputs use /tmp, no rule needed.)
 artifacts/tickets_texts.checkpoint.jsonl
+
+# Feature 010: transient embedding checkpoint (append-only resume state).
+# Deleted on successful completion; never committed — the pinned artifact is
+# data/raw/tickets_embeddings.jsonl. (Local sample outputs use /tmp, no rule needed.)
+artifacts/tickets_embeddings.checkpoint.jsonl
