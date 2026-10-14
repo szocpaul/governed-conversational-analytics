@@ -19,10 +19,18 @@ from fastapi import APIRouter
 
 from app.ai.answer_program import AnswerProgram
 from app.ai.query_program import QueryProgram
+from app.ai.retrieval import (
+    RetrievalError,
+    RetrievalRequest,
+    fetch_ticket_summaries,
+    retrieve,
+    validate_retrieval_request,
+)
 from app.api.schemas import (
     Evidence,
     QuestionRequest,
     QueryResponse,
+    RetrievalResult,
     TraceEvent,
 )
 from app.data.graphjin_client import GraphJinClient, GraphJinError
@@ -73,6 +81,116 @@ def _make_graphjin_client() -> GraphJinClient:
     return GraphJinClient(url, timeout=30.0)
 
 
+# ---------------------------------------------------------------------------
+# Feature 010: governed hybrid retrieval (opt-in per question type, research
+# R9). A deterministic router recognizes the two content-question shapes and
+# routes them to the governed retrieval tool; every other question flows to
+# the structured GraphJin path UNCHANGED.
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+# "tickets about X" / "show me tickets about X" / "tickets about login problems"
+_ABOUT_RE = _re.compile(
+    r"\btickets?\s+(?:about|regarding|concerning|related to|dealing with)\s+"
+    r"(?P<query>.+?)\??\s*$", _re.IGNORECASE)
+# "tickets similar to ticket 847203" / "similar to ticket 847203"
+_SIMILAR_RE = _re.compile(
+    r"\b(?:tickets?\s+)?(?:similar|like)\s+(?:to\s+)?ticket\s+"
+    r"(?P<tid>\d+)\b", _re.IGNORECASE)
+
+
+def _route_content_question(question: str) -> RetrievalRequest | None:
+    """Return a governed retrieval request for a content question, else None.
+
+    Deterministic and opt-in: only the two content-question shapes route to
+    retrieval; everything else returns None so the structured path handles it
+    exactly as before.
+    """
+    similar = _SIMILAR_RE.search(question)
+    if similar:
+        return validate_retrieval_request(
+            {"mode": "similar", "ticket_id": int(similar.group("tid"))})
+    about = _ABOUT_RE.search(question)
+    if about:
+        return validate_retrieval_request(
+            {"mode": "about", "query_text": about.group("query").strip()})
+    return None
+
+
+def _embed_query_text(text: str) -> list[float]:
+    """Embed the retrieval query text with the pinned embedding model.
+
+    Uses the same pinned EmbeddingGemma-2 endpoint as the offline generator
+    (EMBED_* config); no fallback. Raises RetrievalError on failure.
+    """
+    from app.ai.embeddings import EmbeddingConfig, EmbeddingProgram
+    try:
+        program = EmbeddingProgram(config=EmbeddingConfig.from_env())
+        return program._embed_once(text)
+    except Exception as exc:  # noqa: BLE001
+        raise RetrievalError(f"query embedding failed: {exc}") from exc
+
+
+def _run_retrieval(req: RetrievalRequest, trace: Trace,
+                   question: str) -> QueryResponse:
+    """Execute governed retrieval and ground the answer on the result."""
+    try:
+        result = retrieve(req, embed_query=_embed_query_text)
+    except RetrievalError as exc:
+        trace.add("error", f"retrieval dependency failure: {exc}")
+        return _response(
+            "dependency_error",
+            "The retrieval dependency is unavailable; no fallback was "
+            "attempted.",
+            trace,
+        )
+    retrieval = RetrievalResult(**result)
+    trace.add("retrieval",
+              f"mode={retrieval.trace[0]['mode']} "
+              f"ticket_ids={retrieval.ticket_ids}")
+
+    # Ground the answer on the retrieval result; never fabricate (FR-014).
+    if not retrieval.ticket_ids:
+        trace.add("clarification", "retrieval returned no matching tickets")
+        return _response(
+            "clarification",
+            "I found no tickets matching that content query. Please "
+            "rephrase or broaden the search.",
+            trace,
+        )
+
+    summaries = fetch_ticket_summaries(retrieval.ticket_ids)
+    score_by_id = dict(zip(retrieval.ticket_ids, retrieval.scores))
+    evidence = Evidence(
+        rows=[{**s, "relevance_score": round(score_by_id[s["ticket_id"]], 6)}
+              for s in summaries],
+        row_count=len(summaries),
+    )
+    try:
+        ap = _make_answer_program()
+        answered = ap(question=question, evidence=evidence)
+    except Exception:  # noqa: BLE001
+        trace.add("error", "answer dependency failure")
+        return _response(
+            "dependency_error",
+            "The language model dependency is unavailable; no fallback was "
+            "attempted.",
+            trace,
+        )
+    if not answered.grounded:
+        trace.add("refused", "answer not grounded in retrieval result")
+        return _response(
+            "clarification",
+            "I could not produce an answer fully supported by the retrieved "
+            "tickets. Please rephrase or narrow the question.",
+            trace,
+            evidence,
+        )
+    trace.add("answered", "grounded answer returned from retrieval")
+    return _response("answered", redact(answered.answer), trace, evidence)
+
+
 def _response(status: str, answer: str, trace: Trace,
               evidence: Evidence | None = None) -> QueryResponse:
     return QueryResponse(
@@ -112,6 +230,14 @@ def _query_inner(req: QuestionRequest) -> QueryResponse:
         trace.add("injection_signal",
                   f"telemetry category={signal.category} "
                   f"patterns={len(signal.matched_patterns)}")
+
+    # 0b. Feature 010: opt-in governed retrieval for content questions.
+    # Only the two content-question shapes route here; every other question
+    # flows to the structured GraphJin path below UNCHANGED.
+    content_req = _route_content_question(req.question)
+    if content_req is not None:
+        trace.add("classified", f"content question (mode={content_req.mode})")
+        return _run_retrieval(content_req, trace, req.question)
 
     # 1. Classify + plan (DSPy, pinned local model; no fallback).
     try:

@@ -228,12 +228,40 @@ def retrieve(request: RetrievalRequest, *,
         lexical = _rows(cur, lexical_sql, lexical_params)
         semantic = _rows(cur, semantic_sql, semantic_params)
 
-    fused = rrf_fuse(lexical, semantic)[:limit]
+    fused = rrf_fuse(lexical, semantic)
+    if request.mode == "similar":
+        # A ticket is not "similar to itself": exclude the reference ticket.
+        fused = [(tid, s) for tid, s in fused if tid != request.ticket_id]
+    fused = fused[:limit]
     ticket_ids = [tid for tid, _ in fused]
     scores = [score for _, score in fused]
     trace = [{"event": "retrieval", "ticket_ids": ticket_ids,
               "mode": request.mode}]
     return {"ticket_ids": ticket_ids, "scores": scores, "trace": trace}
+
+
+# Governed fields returned for grounding an answer on retrieved tickets.
+SUMMARY_FIELDS = ("ticket_id", "category", "sub_category", "priority",
+                  "short_description")
+
+
+def fetch_ticket_summaries(ticket_ids: list[int]) -> list[dict]:
+    """Fetch governed summary fields for retrieved tickets (read-only role).
+
+    Used to ground the answer on the retrieval result. Returns rows in the
+    same order as ticket_ids. Read-only; fixed parameterized SQL.
+    """
+    if not ticket_ids:
+        return []
+    placeholders = ", ".join(["%s"] * len(ticket_ids))
+    sql = (
+        f"SELECT {', '.join(SUMMARY_FIELDS)} FROM itsm.tickets "
+        f"WHERE ticket_id IN ({placeholders})"
+    )
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute(sql, list(ticket_ids))
+        rows = {int(r[0]): dict(zip(SUMMARY_FIELDS, r)) for r in cur.fetchall()}
+    return [rows[tid] for tid in ticket_ids if tid in rows]
 
 
 def _parse_stored_vector(stored: object) -> list[float]:
