@@ -70,7 +70,7 @@ rate is bounded, and zero held-out IDs appear in the tuning input.
 
 - [X] T016 Run the full validation gate set from `specs/011-classifier-content-routing/quickstart.md` steps 1-5: `pytest -q` green (all 571 pre-existing + new tests, SC-008); routing smoke test passes (deep paraphrase -> retrieval, structured unchanged); held-out gate passes. Fix any failure at its source.
 - [X] T017 Verify artifact pinning (SC-006): recompute SHA-256 of `app/ai/optimized_program.json` and confirm it equals the `output_artifact_sha256` recorded in `artifacts/optimization-run.json`; confirm the accepted demo IDs are development case IDs only.
-- [ ] T018 Complete `specs/011-classifier-content-routing/runner-report.md` per the AGENTS.md Required Final Report: completed/blocked task IDs, files changed, commits, exact pinned versions, validation commands with exact results, the noise-calibration thresholds, routing accuracy + false-routing + structured-regression results, security content-case results, latency (median, p90, max, observational), known limitations.
+- [X] T018 Complete `specs/011-classifier-content-routing/runner-report.md` per the AGENTS.md Required Final Report: completed/blocked task IDs, files changed, commits, exact pinned versions, validation commands with exact results, the noise-calibration thresholds, routing accuracy + false-routing + structured-regression results, security content-case results, latency (median, p90, max, observational), known limitations.
 
 ## Dependencies
 
