@@ -23,6 +23,7 @@ import re
 
 CATEGORY_CONTENT_ABOUT = "content_about"
 CATEGORY_CONTENT_SIMILAR = "content_similar"
+CATEGORY_CONTENT_COUNT = "content_count"
 CATEGORY_SUPPORTED = "supported"
 CATEGORY_AMBIGUOUS = "ambiguous"
 CATEGORY_UNSUPPORTED = "unsupported"
@@ -32,10 +33,15 @@ CATEGORY_UNSUPPORTED = "unsupported"
 CONTENT_CATEGORIES = frozenset(
     {CATEGORY_CONTENT_ABOUT, CATEGORY_CONTENT_SIMILAR})
 
+#: The category that routes to the governed hybrid COUNT path (feature 012).
+#: It is NOT part of CONTENT_CATEGORIES (the retrieval list path); it has its
+#: own dispatch to the count query.
+COUNT_CATEGORIES = frozenset({CATEGORY_CONTENT_COUNT})
+
 #: All categories the classifier may legitimately output.
 KNOWN_CATEGORIES = frozenset(
-    {CATEGORY_CONTENT_ABOUT, CATEGORY_CONTENT_SIMILAR, CATEGORY_SUPPORTED,
-     CATEGORY_AMBIGUOUS, CATEGORY_UNSUPPORTED})
+    {CATEGORY_CONTENT_ABOUT, CATEGORY_CONTENT_SIMILAR, CATEGORY_CONTENT_COUNT,
+     CATEGORY_SUPPORTED, CATEGORY_AMBIGUOUS, CATEGORY_UNSUPPORTED})
 
 
 def normalize_category(raw: object) -> str:
@@ -55,6 +61,11 @@ def normalize_category(raw: object) -> str:
 def is_content_category(category: str) -> bool:
     """Return True when the category routes to governed retrieval."""
     return category in CONTENT_CATEGORIES
+
+
+def is_count_category(category: str) -> bool:
+    """Return True when the category routes to the governed count path."""
+    return category in COUNT_CATEGORIES
 
 
 # ---------------------------------------------------------------------------

@@ -11,7 +11,7 @@ import dspy
 
 # Versioned instruction marker: bumped on any change to a signature docstring
 # or output field (house discipline; feature 011 extended ClassifyQuestion).
-PROMPT_VERSION = "2"
+PROMPT_VERSION = "3"
 
 # ---------------------------------------------------------------------------
 # Classification
@@ -22,8 +22,8 @@ class ClassifyQuestion(dspy.Signature):
     """Classify a natural-language ITSM analytics question.
 
     Route the question to exactly ONE category so the governed pipeline can
-    handle it: content_about, content_similar, supported, ambiguous, or
-    unsupported.
+    handle it: content_about, content_similar, content_count, supported,
+    ambiguous, or unsupported.
 
     A question is CONTENT_ABOUT when it asks to FIND tickets by what they are
     ABOUT — their text content (the subject, symptoms, or situation described
@@ -38,13 +38,23 @@ class ClassifyQuestion(dspy.Signature):
     referenced ticket (a ticket id is present or implied). Examples:
     "tickets similar to 847207", "find tickets like 847203".
 
+    A question is CONTENT_COUNT when it asks for a COUNT over a TOPIC — how
+    many tickets are ABOUT something (their text content), not a structured
+    column value. Examples: "how many tickets about login", "how many tickets
+    are about sign-in problems", "how many tickets mention password resets".
+    The topic lives in the ticket text, so a structured count cannot answer
+    it; route it to content_count, NOT supported. A question asking for a
+    LIST of tickets about a topic is content_about, NOT content_count.
+
     A question is SUPPORTED when it can be answered by ONE governed
     structured query: a single list of rows, a single aggregate (count/sum/
     avg/min/max/ratio) with optional filters and ordering, or a grouped
     breakdown (group_by over 1-3 fields with one aggregate, optionally
     filtered per-group with having). A COUNT, AGGREGATE, or GROUPED BREAKDOWN
-    question is SUPPORTED even when it mentions a topic: "how many tickets
-    are about login" asks for a COUNT, so it is supported, NOT content_about.
+    question is SUPPORTED only when the count/aggregate is over a STRUCTURED
+    column value: "how many P1 tickets" or "how many tickets in category X"
+    is supported. A COUNT over a TOPIC ("how many tickets are about login")
+    is content_count, NOT supported, because the topic lives in the text.
 
     Classify as AMBIGUOUS when the question asks for several things at once
     (multi-part, e.g. "which agent is best AND how many tickets"), because a
@@ -55,16 +65,16 @@ class ClassifyQuestion(dspy.Signature):
     cannot express: joins across entities in one result, subqueries, unions,
     or data outside the governed dataset.
 
-    When you are uncertain whether a question is content_about or a
-    structured analytical question, prefer SUPPORTED (the conservative
+    When you are uncertain whether a question is content_about, content_count,
+    or a structured analytical question, prefer SUPPORTED (the conservative
     default): a missed content question then yields a clarification rather
     than a wrong answer.
     """
 
     question: str = dspy.InputField(desc="the user's natural-language question")
     category: str = dspy.OutputField(
-        desc="one of: content_about, content_similar, supported, ambiguous, "
-             "unsupported")
+        desc="one of: content_about, content_similar, content_count, "
+             "supported, ambiguous, unsupported")
     rationale: str = dspy.OutputField(
         desc="one short sentence explaining the classification")
 
