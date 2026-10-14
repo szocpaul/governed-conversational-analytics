@@ -1,7 +1,7 @@
 {
-  "version": 3,
+  "version": 4,
   "kind": "development",
-  "description": "Labeled development cases for BootstrapFewShot optimization (spec 004, T001). These are the ONLY cases the optimizer may consume (FR-009, SC-007). Each supported case carries a labeled governed request and the normalized expected execution result.",
+  "description": "Labeled development cases for BootstrapFewShot optimization (spec 004, T001). These are the ONLY cases the optimizer may consume (FR-009, SC-007). Each supported case carries a labeled governed request and the normalized expected execution result. Feature 011 added route_* cases labeling the routing decision.",
   "cases": [
     {
       "id": "DEV-001",
@@ -635,6 +635,81 @@
           "category": "Fulfilment & Logistics",
           "min_fraction": 0.5
         }
+      }
+    },
+    {
+      "id": "DEV-RTE-001",
+      "category": "route_content_about",
+      "question": "Which tickets describe shoppers who can't finish paying because their card keeps getting turned down?",
+      "expected": {
+        "route": "content_about",
+        "relevant_categories": [
+          "Payments & Checkout"
+        ]
+      }
+    },
+    {
+      "id": "DEV-RTE-002",
+      "category": "route_content_about",
+      "question": "Show me tickets about password resets",
+      "expected": {
+        "route": "content_about",
+        "relevant_categories": [
+          "Account Access"
+        ]
+      }
+    },
+    {
+      "id": "DEV-RTE-003",
+      "category": "route_content_about",
+      "question": "find cases where people are stuck at sign-in and can't verify their identity",
+      "expected": {
+        "route": "content_about",
+        "relevant_categories": [
+          "Account Access"
+        ]
+      }
+    },
+    {
+      "id": "DEV-RTE-004",
+      "category": "route_content_similar",
+      "question": "tickets similar to 847205",
+      "expected": {
+        "route": "content_similar",
+        "ticket_id": 847205
+      }
+    },
+    {
+      "id": "DEV-RTE-005",
+      "category": "route_content_similar",
+      "question": "Find tickets similar to ticket 847220",
+      "expected": {
+        "route": "content_similar",
+        "ticket_id": 847220
+      }
+    },
+    {
+      "id": "DEV-RTE-006",
+      "category": "route_structured",
+      "question": "how many tickets are about login",
+      "expected": {
+        "route": "supported"
+      }
+    },
+    {
+      "id": "DEV-RTE-007",
+      "category": "route_structured",
+      "question": "How many P1 tickets are there?",
+      "expected": {
+        "route": "supported"
+      }
+    },
+    {
+      "id": "DEV-RTE-008",
+      "category": "route_unsupported",
+      "question": "What is the weather forecast for tomorrow?",
+      "expected": {
+        "route": "unsupported"
       }
     }
   ]
