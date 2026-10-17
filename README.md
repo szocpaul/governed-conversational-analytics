@@ -113,6 +113,33 @@ artifacts/                  # provenance, baselines, evaluation results
 specs/                      # Spec Kit artifacts per feature (001-012)
 ```
 
+## Architecture (Groma)
+
+This project uses [Groma](https://github.com/MrLesk/Groma.md) to describe its
+architecture as C4-level Markdown in the `.groma/` directory. The map is
+curated from the source and kept in sync with the code.
+
+To inspect the architecture:
+
+```bash
+groma view --plain          # actors, system, external systems, relationships, flows
+groma view web-application  # the FastAPI app container and its grouped components
+groma view structured-query # the main query pipeline flow
+```
+
+To refresh the map after code changes:
+
+```bash
+groma scan                  # re-scan the repository and update element placement
+groma lint                  # page possible duplicate logic from fresh evidence
+```
+
+The map records the system, containers (web application, evaluation toolkit,
+and the offline pipeline scripts), components (grouped by domain), actors
+(Analyst, Operator), external systems (PostgreSQL, GraphJin, local LLM,
+embedding endpoint), and the two main flows (structured query, content
+search). Do not edit the Groma-owned Markdown directly — use the `groma` CLI.
+
 ## License & attribution
 
 Dataset: MIT License, © drapertoby — see `data/raw/LICENSE`.
