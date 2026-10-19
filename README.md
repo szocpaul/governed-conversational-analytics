@@ -15,6 +15,17 @@ every answer shows its sanitized execution trace and latency.
 **Try it live:** open the demo UI, click an example question, and see the
 answer with its full trace — no typing needed.
 
+## Live demo URLs
+
+The demo is hosted on a public Cloudflare quick tunnel:
+
+- Demo UI: <https://sip-costume-building-chronicle.trycloudflare.com/>
+- Groma architecture map (read-only): <https://sip-costume-building-chronicle.trycloudflare.com/groma/>
+
+The tunnel is an ephemeral `cloudflared` quick tunnel to the demo server
+(see "Quick start"). If a URL is unreachable, restart the server and the
+tunnel; the demo UI itself does not depend on the tunnel.
+
 ## Quick start
 
 ```bash
@@ -32,7 +43,9 @@ python3 -m app.ai.preflight
 
 # 4. Run the demo UI
 uvicorn app.main:app --host 127.0.0.1 --port 8001
-# → http://127.0.0.1:8001/
+# → http://127.0.0.1:8001/ (demo UI)
+# → http://127.0.0.1:8001/groma/ (read-only Groma architecture map,
+#   served when a groma-export/ directory exists — see "Live demo URLs")
 ```
 
 The dataset is the MIT-licensed
