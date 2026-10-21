@@ -21,6 +21,7 @@ The demo is hosted on a public Cloudflare quick tunnel:
 
 - Demo UI: <https://sip-costume-building-chronicle.trycloudflare.com/>
 - Groma architecture map (read-only): <https://sip-costume-building-chronicle.trycloudflare.com/groma/>
+- Groma architecture map in Hungarian (read-only): <https://sip-costume-building-chronicle.trycloudflare.com/groma-hu/>
 
 The tunnel is an ephemeral `cloudflared` quick tunnel to the demo server
 (see "Quick start"). If a URL is unreachable, restart the server and the
@@ -46,6 +47,8 @@ uvicorn app.main:app --host 127.0.0.1 --port 8001
 # → http://127.0.0.1:8001/ (demo UI)
 # → http://127.0.0.1:8001/groma/ (read-only Groma architecture map,
 #   served when a groma-export/ directory exists — see "Live demo URLs")
+# → http://127.0.0.1:8001/groma-hu/ (the Hungarian translation of the same
+#   map, served when a groma-export-hu/ directory exists)
 ```
 
 The dataset is the MIT-licensed
