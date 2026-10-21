@@ -21,3 +21,4 @@ Composes two typed predictors: ClassifyQuestion (routes to content_about, conten
 | [app/ai/query_program.py](../../../../../../app/ai/query_program.py) | [app/ai/signatures.py](../../../../../../app/ai/signatures.py) | Composes typed predictors | Python (DSPy) |
 | [app/ai/query_program.py](../../../../../../app/ai/query_program.py) | [app/ai/routing.py](../../../../../../app/ai/routing.py) | Normalizes category | Python (pure function) |
 | [app/ai/query_program.py](../../../../../../app/ai/query_program.py) | [app/api/schemas.py](../../../../../../app/api/schemas.py) | Parses planner output | Python (Pydantic) |
+| [query-program](query-program.md) | [local-llm-endpoint](../../../../../externals/local-llm-endpoint.md) | Classifies and plans the question | DSPy (pinned local model) |

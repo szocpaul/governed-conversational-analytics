@@ -1,6 +1,6 @@
 ---
 type: C4 Component
-title: Import dataset (script)
+title: Dataset import script
 status: stable
 groma:
   id: import-dataset
