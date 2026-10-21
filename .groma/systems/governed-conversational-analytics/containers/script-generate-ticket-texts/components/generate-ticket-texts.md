@@ -1,6 +1,6 @@
 ---
 type: C4 Component
-title: Generate ticket texts (script)
+title: Ticket-text generation script
 status: stable
 groma:
   id: generate-ticket-texts

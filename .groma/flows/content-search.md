@@ -13,9 +13,11 @@ The analyst asks a question about ticket content (e.g. tickets about login probl
 | --- | --- | --- |
 | [Analyst](../actors/analyst.md) | [Routes](../systems/governed-conversational-analytics/containers/web-application/components/routes.md) | Ask a content question |
 | [Routes](../systems/governed-conversational-analytics/containers/web-application/components/routes.md) | [Query program](../systems/governed-conversational-analytics/containers/web-application/components/query-program.md) | Classify as content_about |
+| [Query program](../systems/governed-conversational-analytics/containers/web-application/components/query-program.md) | [Local LLM endpoint](../externals/local-llm-endpoint.md) | Classify the question with the pinned model |
 | [Routes](../systems/governed-conversational-analytics/containers/web-application/components/routes.md) | [Routing helpers](../systems/governed-conversational-analytics/containers/web-application/components/ai-routing.md) | Extract ticket_id (similar mode) |
 | [Routes](../systems/governed-conversational-analytics/containers/web-application/components/routes.md) | [Governed retrieval](../systems/governed-conversational-analytics/containers/web-application/components/ai-retrieval.md) | Run hybrid retrieval |
 | [Routes](../systems/governed-conversational-analytics/containers/web-application/components/routes.md) | [Embedding endpoint](../externals/embedding-endpoint.md) | Embed query text |
 | [Governed retrieval](../systems/governed-conversational-analytics/containers/web-application/components/ai-retrieval.md) | [PostgreSQL](../externals/postgresql-database.md) | Run parameterized read-only SQL |
 | [Routes](../systems/governed-conversational-analytics/containers/web-application/components/routes.md) | [Answer program](../systems/governed-conversational-analytics/containers/web-application/components/answer-program.md) | Generate grounded answer |
+| [Answer program](../systems/governed-conversational-analytics/containers/web-application/components/answer-program.md) | [Local LLM endpoint](../externals/local-llm-endpoint.md) | Ground the answer with the pinned model |
 | [Routes](../systems/governed-conversational-analytics/containers/web-application/components/routes.md) | [Analyst](../actors/analyst.md) | Return grounded answer |

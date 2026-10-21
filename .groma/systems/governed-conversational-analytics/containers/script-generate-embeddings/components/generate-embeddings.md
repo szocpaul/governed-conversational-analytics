@@ -1,6 +1,6 @@
 ---
 type: C4 Component
-title: Generate embeddings (script)
+title: Embedding generation script
 status: stable
 groma:
   id: generate-embeddings

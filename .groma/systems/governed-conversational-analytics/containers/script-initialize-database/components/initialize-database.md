@@ -1,6 +1,6 @@
 ---
 type: C4 Component
-title: Initialize database (script)
+title: Database initialization script
 status: stable
 groma:
   id: initialize-database

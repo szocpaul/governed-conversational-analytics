@@ -32,3 +32,4 @@ The POST /query endpoint submits the request to a bounded thread pool with an ov
 | [app/api/routes.py](../../../../../../app/api/routes.py) | [app/security/redaction.py](../../../../../../app/security/redaction.py) | Redacts user-facing output | Python (regex) |
 | [app/api/routes.py](../../../../../../app/api/routes.py) | [app/observability/trace.py](../../../../../../app/observability/trace.py) | Records trace events | Python (in-memory) |
 | [routes](routes.md) | [analyst](../../../../../actors/analyst.md) | Returns the grounded answer | HTTP JSON (FastAPI) |
+| [app/api/routes.py](../../../../../../app/api/routes.py) | [app/ai/embeddings.py](../../../../../../app/ai/embeddings.py) | Embeds the retrieval and count topic text | Python (httpx) |

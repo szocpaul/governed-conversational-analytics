@@ -19,3 +19,4 @@ Generates an answer from the question plus normalized evidence via the GroundAns
 | Source | Target | Description | Technology |
 | --- | --- | --- | --- |
 | [app/ai/answer_program.py](../../../../../../app/ai/answer_program.py) | [app/ai/signatures.py](../../../../../../app/ai/signatures.py) | Uses GroundAnswer signature | Python (DSPy) |
+| [answer-program](answer-program.md) | [local-llm-endpoint](../../../../../externals/local-llm-endpoint.md) | Grounds the answer in the evidence | DSPy (pinned local model) |

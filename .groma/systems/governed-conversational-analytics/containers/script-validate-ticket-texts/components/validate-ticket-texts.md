@@ -1,6 +1,6 @@
 ---
 type: C4 Component
-title: Validate ticket texts (script)
+title: Ticket-text validation script
 status: stable
 groma:
   id: validate-ticket-texts

@@ -1,6 +1,6 @@
 ---
 type: C4 Component
-title: Reset database (script)
+title: Database reset script
 status: stable
 groma:
   id: reset-database
