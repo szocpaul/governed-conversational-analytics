@@ -66,14 +66,7 @@
     renderTrace([]);
   }
 
-  function submitQuestion(q) {
-    input.value = q;
-    form.dispatchEvent(new Event("submit"));
-  }
-
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var q = input.value.trim();
+  function askQuestion(q) {
     if (!q) { return; }
     closeSuggestions();
     btn.disabled = true;
@@ -92,6 +85,21 @@
         btn.disabled = false;
         btn.textContent = "Ask";
       });
+  }
+
+  /* One code path for the free-text form and the example gallery. The
+   * gallery buttons call askQuestion() directly instead of dispatching a
+   * synthetic "submit" event: a dispatched submit event runs the form's
+   * native submission in some browsers (the page reloads with ?question=...
+   * and the answer never appears). */
+  function submitQuestion(q) {
+    input.value = q;
+    askQuestion(q);
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    askQuestion(input.value.trim());
   });
 
   /* -- Gallery (US1) ---------------------------------------------------- */

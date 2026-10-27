@@ -90,6 +90,24 @@ def test_overview_card_names_all_subjects():
         assert subject in overview, subject
 
 
+def test_gallery_click_never_triggers_a_native_form_submit():
+    """Clicking an example must not reload the page.
+
+    The gallery used to dispatch a synthetic "submit" event on the form.
+    Browsers that run the default action of an untrusted submit event
+    (Firefox, WebKit) then performed a native GET form submission: the page
+    reloaded with "?question=..." and no answer was ever shown. The example
+    buttons now call the shared askQuestion() helper, and the client never
+    dispatches synthetic events.
+    """
+    with TestClient(app) as client:
+        js = client.get("/static/app.js").text
+    assert "dispatchEvent" not in js
+    assert "function askQuestion(" in js
+    assert "submitQuestion(entry.question)" in js
+    assert "askQuestion(q)" in js
+
+
 def test_gallery_markup_hooks_present():
     """Gallery toggle/panel and suggestions container exist (contract)."""
     with TestClient(app) as client:

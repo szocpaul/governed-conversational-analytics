@@ -137,3 +137,37 @@ The reviewer then re-tested all gallery buttons and interactions in the
 browser and approved the gate. T017 is ticked in tasks.md.
 
 **Feature 008 (Query Discovery UI) is COMPLETE: T001-T017 done.**
+
+## 13. Follow-up fix (2026-10-27): gallery click reloaded the page
+
+**Symptom.** A reviewer clicking an example in the gallery saw nothing
+happen. The demo server log showed the request that the browser actually
+made: `GET /?question=How+many+tickets+are+there+in+total%3F` — a native
+HTML form submission, not the `POST /query` the client is supposed to send.
+The page reloaded with the question in the query string, so no answer was
+ever rendered.
+
+**Cause.** The gallery buttons called
+`form.dispatchEvent(new Event("submit"))`. The synthetic event is not
+cancelable, so the `preventDefault()` in the submit handler had no effect.
+Browsers that run the default action of an untrusted `submit` event
+(Firefox, WebKit) therefore performed the native form submission; Chrome
+ignored it, which is why the bug was invisible in the Chrome-based manual
+review of T017.
+
+**Fix.** `app/web/app.js` now has one request path: `askQuestion(q)` does
+the `POST /query` call, the form's `submit` handler calls it after
+`preventDefault()`, and the gallery buttons call `submitQuestion(q)` ->
+`askQuestion(q)` directly. The client no longer dispatches synthetic
+events, so no browser can submit the form natively.
+
+**Regression test.** `tests/integration/test_demo_interface.py::
+test_gallery_click_never_triggers_a_native_form_submit` asserts that the
+served client contains no `dispatchEvent` call and that both entry points
+use the shared `askQuestion` helper.
+
+**Verification.** A headless-Chrome probe (temporary probe page, removed
+after the run) clicked the first gallery example through the public
+Cloudflare tunnel: the answer rendered (`There are 2,057 tickets in
+total.`), the URL did not change, and the server log shows `POST /query`
+instead of `GET /?question=...`.

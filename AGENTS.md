@@ -48,7 +48,13 @@ artifact `artifacts/examples-verification.json`). See
 `specs/008-query-discovery-ui/runner-report.md`. Follow-up (2026-10-14):
 the gallery gained a "Content search" category (5 examples covering hybrid
 retrieval, deep-paraphrase routing, vector similarity, and
-count-over-content from features 010-012); `verify_examples` 26/26 passed.
+count-over-content from features 010-012); `verify_examples` 26/26 passed. Follow-up fix (2026-10-27): the gallery
+buttons no longer dispatch a synthetic `submit` event, which in Firefox
+and WebKit caused a native form submission (page reload, no answer);
+`app/web/app.js` now uses one shared `askQuestion()` path for both the
+free-text form and the gallery, with a regression test in
+`tests/integration/test_demo_interface.py` (see
+`specs/008-query-discovery-ui/runner-report.md` section 13).
 
 **Feature 009 (Synthetic Ticket Texts) is COMPLETE and human-approved
 (T001-T024, MANUAL GATE passed 2026-10-13).** The pinned dataset gains
