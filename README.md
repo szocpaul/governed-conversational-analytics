@@ -19,13 +19,22 @@ answer with its full trace — no typing needed.
 
 The demo is hosted on a public Cloudflare quick tunnel:
 
-- Demo UI: <https://sip-costume-building-chronicle.trycloudflare.com/>
-- Groma architecture map (read-only): <https://sip-costume-building-chronicle.trycloudflare.com/groma/>
-- Groma architecture map in Hungarian (read-only): <https://sip-costume-building-chronicle.trycloudflare.com/groma-hu/>
+- Demo UI: <https://tones-minolta-algebra-trademark.trycloudflare.com/>
+- Groma architecture map (read-only): <https://tones-minolta-algebra-trademark.trycloudflare.com/groma/>
+- Groma architecture map in Hungarian (read-only): <https://tones-minolta-algebra-trademark.trycloudflare.com/groma-hu/>
 
 The tunnel is an ephemeral `cloudflared` quick tunnel to the demo server
 (see "Quick start"). If a URL is unreachable, restart the server and the
 tunnel; the demo UI itself does not depend on the tunnel.
+
+```bash
+# Restart the public tunnel (a quick tunnel gets a NEW random URL every time,
+# so update the three links above with the URL printed in the log)
+pkill -f 'cloudflared tunnel --url http://127.0.0.1:8001'
+setsid nohup cloudflared tunnel --url http://127.0.0.1:8001 --no-autoupdate \
+  > /tmp/tunnel.log 2>&1 < /dev/null &
+grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' /tmp/tunnel.log | head -1
+```
 
 ## Quick start
 
