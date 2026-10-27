@@ -27,6 +27,16 @@ The tunnel is an ephemeral `cloudflared` quick tunnel to the demo server
 (see "Quick start"). If a URL is unreachable, restart the server and the
 tunnel; the demo UI itself does not depend on the tunnel.
 
+Stable direct access (Tailscale only, same tailnet as the reviewer machine):
+
+- Demo UI: <http://<tailnet-ip>:8001/>
+- Groma architecture map (read-only): <http://<tailnet-ip>:8001/groma/>
+- Groma architecture map in Hungarian (read-only): <http://<tailnet-ip>:8001/groma-hu/>
+
+The demo server listens on the Tailscale interface; the host firewall keeps
+port 8001 closed to the public internet, so the tailnet URL and the public
+tunnel are the only two ways in.
+
 ```bash
 # Restart the public tunnel (a quick tunnel gets a NEW random URL every time,
 # so update the three links above with the URL printed in the log)
