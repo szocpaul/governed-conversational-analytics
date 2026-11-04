@@ -35,5 +35,5 @@ docs/
 i18n/
 tools/
 
-# Local Backlog task that is not published to GitHub.
-backlog/tasks/task-5 - Evaluate-GraphJin-as-a-governed-hybrid-ticket-search-boundary.md
+# Local Backlog.md project management (tasks and config stay on this machine).
+backlog/
