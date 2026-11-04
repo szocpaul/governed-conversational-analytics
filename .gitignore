@@ -25,3 +25,15 @@ artifacts/tickets_embeddings.checkpoint.jsonl
 # served read-only at /groma by the demo app (app/main.py). Build artifact, never committed.
 groma-export/
 groma-export-hu/
+
+# Local-only material, kept out of the published GitHub tree (the remote
+# repository does not carry these paths):
+# - docs/            local documentation sets (interview brief, API guide, HU mirror)
+# - i18n/            local DeepL translation map for the Hungarian Groma export
+# - tools/           local helper scripts (DeepL translation tools)
+docs/
+i18n/
+tools/
+
+# Local Backlog task that is not published to GitHub.
+backlog/tasks/task-5 - Evaluate-GraphJin-as-a-governed-hybrid-ticket-search-boundary.md
