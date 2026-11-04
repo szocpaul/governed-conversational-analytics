@@ -28,7 +28,7 @@ groma-export-hu/
 
 # Local-only material, kept out of the published GitHub tree (the remote
 # repository does not carry these paths):
-# - docs/            local documentation sets (interview brief, API guide, HU mirror)
+# - docs/            local documentation sets (API guide and its Hungarian mirror)
 # - i18n/            local DeepL translation map for the Hungarian Groma export
 # - tools/           local helper scripts (DeepL translation tools)
 docs/
