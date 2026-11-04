@@ -1,6 +1,3 @@
-# Prime Agent session data (project skills live in ./skills/ and are symlinked in)
-.prime/
-
 # Local secrets
 .env
 
