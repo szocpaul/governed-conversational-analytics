@@ -6,7 +6,7 @@
     "password": "CANARY_PASSWORD_x9v8u7t6s5",
     "token": "CANARY_TOKEN_m4k3j2h1g0",
     "prompt_fragment": "CANARY_PROMPT_FRAGMENT_z5y4x3w2v1",
-    "endpoint": "http://llm-host.example-tailnet.ts.net:8033/v1"
+    "endpoint": "http://private-llm-host.example-tailnet.ts.net:8033/v1"
   },
   "prohibited_db_effects": [
     "INSERT",

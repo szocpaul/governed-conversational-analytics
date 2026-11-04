@@ -23,7 +23,7 @@ POSTGRES_PORT = int(os.environ.get("POSTGRES_PORT", "5432"))
 
 # Prohibited values that must never appear in user-facing output (FR-016).
 PROHIBITED_SUBSTRINGS = (
-    "example-tailnet",          # private Tailscale endpoint
+    "ts.net",              # private tailnet endpoint host
     "Bearer ",
     "api_key", "password=", "secret=",
     "plainto_tsquery",     # SQL text must not leak into the trace
@@ -39,6 +39,7 @@ def client():
     os.environ["LLM_TEMPERATURE"] = "0"
     os.environ["LLM_CACHE"] = "false"
     from app.main import app
+from app.security.redaction import contains_private_endpoint
     with TestClient(app) as c:
         yield c
 
@@ -110,6 +111,7 @@ def test_retrieval_trace_hygiene(client):
     text = _full_text(p)
     for prohibited in PROHIBITED_SUBSTRINGS:
         assert prohibited not in text, f"prohibited value leaked: {prohibited!r}"
+    assert contains_private_endpoint(text) is False
     # The retrieval trace lists ticket_ids only.
     retrieval_events = [e for e in p["trace"] if e["event"] == "retrieval"]
     assert retrieval_events
@@ -124,6 +126,7 @@ def test_error_responses_carry_no_endpoint_or_credentials(client):
     text = _full_text(p)
     for prohibited in PROHIBITED_SUBSTRINGS:
         assert prohibited not in text
+    assert contains_private_endpoint(text) is False
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +140,7 @@ def test_security_retrieval_query_returns_nothing_prohibited(client):
     # No canary/credential/endpoint/SQL disclosure.
     for prohibited in PROHIBITED_SUBSTRINGS:
         assert prohibited not in text
+    assert contains_private_endpoint(text) is False
     # A valid non-error status; the synthetic corpus contains no real secrets.
     assert p["status"] in ("answered", "clarification", "unsupported")
     # Zero database changes.

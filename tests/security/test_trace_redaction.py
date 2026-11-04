@@ -28,7 +28,7 @@ CANARY_SECRET = "CANARY_SECRET_7f3d9a2b1c"
 CANARY_PASSWORD = "CANARY_PASSWORD_x9v8u7t6s5"
 CANARY_TOKEN = "CANARY_TOKEN_m4k3j2h1g0"
 CANARY_PROMPT_FRAGMENT = "CANARY_PROMPT_FRAGMENT_z5y4x3w2v1"
-PRIVATE_ENDPOINT = "http://llm-host.example-tailnet.ts.net:8033/v1"
+PRIVATE_ENDPOINT = "http://private-llm-host.example-tailnet.ts.net:8033/v1"
 
 ALL_CANARIES = [
     CANARY_SECRET,
@@ -70,11 +70,11 @@ def test_redact_full_prompt_not_echoed():
 def test_redact_private_endpoint_variants():
     for variant in [
         PRIVATE_ENDPOINT,
-        "http://llm-host.example-tailnet.ts.net:8033",
-        "https://llm-host.example-tailnet.ts.net:8033/v1/models",
+        "http://private-llm-host.example-tailnet.ts.net:8033",
+        "https://private-llm-host.example-tailnet.ts.net:8033/v1/models",
     ]:
         out = redaction.redact(f"endpoint is {variant} ok")
-        assert "example-tailnet" not in out
+        assert "example-tailnet.ts.net" not in out
         _assert_zero_disclosure(out)
 
 

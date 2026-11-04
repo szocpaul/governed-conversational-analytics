@@ -37,10 +37,10 @@ def test_error_categories_have_stable_codes():
 
 def test_errors_do_not_leak_endpoint():
     err = DependencyError("connection to "
-                          "http://llm-host.example-tailnet.ts.net:8033 "
+                          "http://private-llm-host.example-tailnet.ts.net:8033 "
                           "refused")
     # The sanitized form must not expose the private endpoint.
-    assert "example-tailnet" not in err.sanitized
+    assert "example-tailnet.ts.net" not in err.sanitized
     assert "8033" not in err.sanitized
 
 

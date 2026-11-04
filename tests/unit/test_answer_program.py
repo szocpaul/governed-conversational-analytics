@@ -87,9 +87,9 @@ def test_trace_records_events():
 
 def test_trace_sanitizes_endpoint():
     tr = Trace()
-    tr.add("error", "failed http://llm-host.example-tailnet.ts.net:8033/v1")
+    tr.add("error", "failed http://private-llm-host.example-tailnet.ts.net:8033/v1")
     s = tr.events[0].detail
-    assert "example-tailnet" not in s
+    assert "example-tailnet.ts.net" not in s
     assert "8033" not in s
 
 

@@ -120,7 +120,7 @@ def test_disclosure_clean_text():
 
 def test_disclosure_detects_private_endpoint():
     assert metrics.disclosure(
-        "endpoint http://llm-host.example-tailnet.ts.net:8033/v1", []) is True
+        "endpoint http://private-llm-host.example-tailnet.ts.net:8033/v1", []) is True
 
 
 # ---------------------------------------------------------------------------

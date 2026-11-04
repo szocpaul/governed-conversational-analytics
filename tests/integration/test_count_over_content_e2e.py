@@ -14,25 +14,24 @@ chat/embedding endpoints) and require the calibrated threshold artifact
 from __future__ import annotations
 
 import os
-import re
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.security.redaction import (
+    CREDENTIAL_PATTERNS,
+    PRIVATE_ENDPOINT_PATTERNS,
+)
 
 # The governed retrieval list cap (feature 010): the count must NOT equal this.
 RETRIEVAL_CAP = 25
 # The structured ground truth for "how many P1 tickets" (verified live).
 STRUCTURED_P1_COUNT = 112
 
-# Private endpoint / credential patterns that must NEVER appear in output.
-_PRIVATE_PATTERNS = [
-    re.compile(r"https?://[^\s]*example-tailnet[^\s]*", re.IGNORECASE),
-    re.compile(r"\b\d{1,3}(\.\d{1,3}){3}:\d+\b"),
-    re.compile(r"Bearer\s+\S+", re.IGNORECASE),
-    re.compile(r"(?i)(api[_-]?key|password|secret|token)\s*[=:]\s*\S+"),
-]
+# Private endpoint / credential patterns that must NEVER appear in output
+# (shared with app/security/redaction.py).
+_PRIVATE_PATTERNS = PRIVATE_ENDPOINT_PATTERNS + CREDENTIAL_PATTERNS
 
 
 @pytest.fixture(scope="module")

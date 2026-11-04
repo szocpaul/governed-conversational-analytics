@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.security.redaction import contains_private_endpoint
 
 WEB_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "app", "web")
 
@@ -42,7 +43,7 @@ def test_ui_does_not_embed_private_endpoint():
         html = client.get("/").text
         js = client.get("/static/app.js").text
     for blob in (html, js):
-        assert "example-tailnet" not in blob
+        assert contains_private_endpoint(blob) is False
         assert "8033" not in blob
         assert "CANARY" not in blob
 
@@ -58,7 +59,7 @@ def test_query_endpoint_returns_trace_and_latency_for_ui():
         assert "trace" in payload and isinstance(payload["trace"], list)
         assert "latency_ms" in payload and payload["latency_ms"] >= 0
         # Trace is sanitized: no private endpoint.
-        assert "example-tailnet" not in resp.text
+        assert contains_private_endpoint(resp.text) is False
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +127,6 @@ def test_served_assets_do_not_leak_prohibited_strings():
             client.get("/static/examples.json").text,
         ]
     for blob in blobs:
-        assert "example-tailnet" not in blob
+        assert contains_private_endpoint(blob) is False
         assert "8033" not in blob
         assert "CANARY" not in blob

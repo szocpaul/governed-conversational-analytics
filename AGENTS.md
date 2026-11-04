@@ -147,13 +147,14 @@ and the spec Background ground truth corrected (the "login" hybrid count is
 156, not the earlier lexical-only 88). See
 `specs/012-count-over-content/runner-report.md`.
 
-**Demo UI access (runtime note, 2026-10-10)**: the demo server is currently
-running bound to the Tailscale interface for human review:
-`http://<tailnet-ip>:8001/` (host `<demo-host>`, started with
-`uvicorn app.main:app --host <tailnet-ip> --port 8001`). The documented
+**Demo UI access (runtime note, 2026-10-10)**: the demo server runs bound to
+the operator's Tailnet interface for human review. The address is a local
+runtime value and is deliberately NOT recorded in this repository: read it
+from the local environment (`.env`) or ask the operator. The documented
 default remains `127.0.0.1:8001` (README quickstart). GraphJin (8081) stays
 localhost-only; the app proxies it. The private LLM endpoint must never be
-exposed in the UI, errors, or traces.
+exposed in the UI, errors, or traces, and no private host name, tailnet
+address, or endpoint port may be committed to this repository.
 
 ### Possible Follow-ups (not scheduled; recorded for future sessions)
 
@@ -338,12 +339,16 @@ Use the local OpenAI-compatible llama.cpp endpoint:
 
 ```dotenv
 LLM_PROVIDER=openai-compatible
-LLM_BASE_URL=http://llm-host.example-tailnet.ts.net:8033/v1
+LLM_BASE_URL=http://<private-llm-host>:<port>/v1
 LLM_MODEL=<EXACT_ID_FROM_/v1/models>
 LLM_API_KEY=local-not-required
 LLM_TEMPERATURE=0
 LLM_CACHE=false
 ```
+
+The real host and port are local runtime values: they live in the operator's
+local `.env` (see `.env.example`) and are never committed. Resolve them from
+the environment before the preflight below.
 
 Requested model artifact:
 

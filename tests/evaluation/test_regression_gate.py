@@ -13,6 +13,7 @@ import json
 
 import pytest
 
+from app.security.redaction import contains_private_endpoint
 from evaluation import compare
 
 
@@ -171,8 +172,8 @@ def test_run_artifact_shape_and_metadata(tmp_path):
         assert key in artifact["metadata"], key
     assert artifact["metadata"]["cache"] is False
     assert artifact["metadata"]["temperature"] == 0.0
-    # No private endpoint in metadata.
-    assert "example-tailnet" not in json.dumps(artifact["metadata"])
+    # No private endpoint in metadata (detected by shape, not by one host).
+    assert contains_private_endpoint(json.dumps(artifact["metadata"])) is False
 
     # Metrics computed separately (FR-003).
     m = artifact["metrics"]
@@ -188,6 +189,6 @@ def test_run_metadata_never_contains_secrets():
     from evaluation import run
     md = run.collect_metadata(cache=False)
     blob = json.dumps(md).lower()
-    for forbidden in ("api_key", "password", "secret", "token",
-                      "example-tailnet", "bearer"):
+    for forbidden in ("api_key", "password", "secret", "token", "bearer"):
         assert forbidden not in blob, forbidden
+    assert contains_private_endpoint(blob) is False

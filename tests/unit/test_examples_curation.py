@@ -42,7 +42,7 @@ MANUALLY_VERIFIED_ALLOWLIST: frozenset = frozenset()
 
 # Prohibited content (FR-009): private endpoint details, canary markers,
 # credential-like patterns.
-PROHIBITED_SUBSTRINGS = ("example-tailnet", "8033", "CANARY")
+PROHIBITED_SUBSTRINGS = ("ts.net", "8033", "CANARY")
 CREDENTIAL_RE = re.compile(
     r"(password|api[_ -]?key|secret|token|credential)", re.IGNORECASE)
 

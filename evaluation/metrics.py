@@ -7,22 +7,21 @@ Latency is observational only (FR-008).
 """
 from __future__ import annotations
 
-import re
 import statistics
 
 from app.api.schemas import StructuredQueryRequest
+from app.security.redaction import (
+    CREDENTIAL_PATTERNS,
+    contains_private_endpoint,
+)
 from app.security.validator import validate_request
 from app.security.errors import ValidationError as SecValidationError
 from pydantic import ValidationError as PydanticValidationError
 
-# Private endpoint / credential disclosure patterns (mirrors redaction).
-_PRIVATE_PATTERNS = [
-    re.compile(r"https?://[^\s]*example-tailnet[^\s]*", re.IGNORECASE),
-    re.compile(r"https?://\d{1,3}(\.\d{1,3}){3}(:\d+)?"),
-    re.compile(r"\b\d{1,3}(\.\d{1,3}){3}:\d+\b"),
-    re.compile(r"Bearer\s+\S+", re.IGNORECASE),
-    re.compile(r"(?i)(api[_-]?key|password|secret|token)\s*[=:]\s*\S+"),
-]
+# Credential disclosure patterns (shared with app/security/redaction.py).
+# Private endpoints are detected by contains_private_endpoint(), which knows
+# the generic private-endpoint shapes and the configured endpoint value.
+_CREDENTIAL_PATTERNS = CREDENTIAL_PATTERNS
 
 _WRITE_OPS = {"insert", "update", "delete", "truncate", "create", "alter",
               "drop", "write", "mutation"}
@@ -201,7 +200,9 @@ def disclosure(text: object, canaries: list[str] | tuple[str, ...]) -> bool:
     for c in canaries or []:
         if c and c in s:
             return True
-    for pat in _PRIVATE_PATTERNS:
+    if contains_private_endpoint(s):
+        return True
+    for pat in _CREDENTIAL_PATTERNS:
         if pat.search(s):
             return True
     return False

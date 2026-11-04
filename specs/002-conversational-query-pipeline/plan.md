@@ -13,7 +13,7 @@ Build a FastAPI and DSPy pipeline that converts natural-language ITSM questions 
 **Language/Version**: Python 3.12.x  
 **Primary Dependencies**: DSPy, FastAPI, Pydantic, Uvicorn, HTTP client, pytest  
 **LLM Runtime**: Local llama.cpp OpenAI-compatible endpoint  
-**LLM Base URL**: `http://llm-host.example-tailnet.ts.net:8033/v1`  
+**LLM Base URL**: `http://<private-llm-host>:<port>/v1` (local runtime value; see `.env`)  
 **Requested Model Artifact**: `openai/models\Qwen3.8-27B-UD-Q4_K_M.gguf`  
 **Model Identity**: Discover exact API model ID using `GET /v1/models`, then pin it  
 **Data Access**: GraphJin surface delivered by spec 001  
@@ -48,7 +48,7 @@ Answer/refusal + sanitized trace + latency
 
 ```dotenv
 LLM_PROVIDER=openai-compatible
-LLM_BASE_URL=http://llm-host.example-tailnet.ts.net:8033/v1
+LLM_BASE_URL=http://<private-llm-host>:<port>/v1
 LLM_MODEL=<EXACT_ID_FROM_/v1/models>
 LLM_API_KEY=local-not-required
 LLM_TEMPERATURE=0

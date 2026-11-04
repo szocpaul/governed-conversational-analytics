@@ -23,7 +23,7 @@ implementable and testable.
 
 ## Phase 2: Foundational (tests first — BLOCKS all user stories)
 
-- [X] T002 Write `tests/unit/test_examples_curation.py` enforcing the data-model rules: schema shape, >=15 entries, >=4 categories, categories match declared list, `outcome` in {answerable, refusal_demo}, every answerable question present in the evaluation corpus by normalized text OR explicitly allowlisted in the test, refusal demos carry a `note`, no prohibited strings (private endpoint host `example-tailnet`, port `8033`, `CANARY`, credential-like patterns). Run `pytest tests/unit/test_examples_curation.py -q` and observe FAIL (file under test missing).
+- [X] T002 Write `tests/unit/test_examples_curation.py` enforcing the data-model rules: schema shape, >=15 entries, >=4 categories, categories match declared list, `outcome` in {answerable, refusal_demo}, every answerable question present in the evaluation corpus by normalized text OR explicitly allowlisted in the test, refusal demos carry a `note`, no prohibited strings (private endpoint host or port, `CANARY`, credential-like patterns). Run `pytest tests/unit/test_examples_curation.py -q` and observe FAIL (file under test missing).
 - [X] T003 Extend `tests/integration/test_demo_interface.py` with tests for the new DOM contract (`specs/008-query-discovery-ui/contracts/ui-contract.md`): GET `/static/examples.json` returns 200 JSON; served HTML contains `#dataset-overview` naming tickets/merchants/agents, `#gallery-toggle`, `#gallery`, `#suggestions`; no-leak assertions extended to `/static/examples.json`. Run and observe FAIL.
 
 ## Phase 3: User Story 1 — Browsable example-question gallery (P1)

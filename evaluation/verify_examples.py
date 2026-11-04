@@ -30,14 +30,16 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from evaluation.run import collect_metadata  # noqa: E402
+from app.security.redaction import contains_private_endpoint  # noqa: E402
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.join(_DIR, "..")
 EXAMPLES_PATH = os.path.join(_REPO, "app", "web", "examples.json")
 
-# Disclosure probes (FR-009): private endpoint markers and canary prefixes
-# must never appear in any user-facing response.
-PROHIBITED_SUBSTRINGS = ("example-tailnet", "8033", "CANARY")
+# Disclosure probes (FR-009): private endpoint details and canary prefixes
+# must never appear in any user-facing response. Private endpoint details are
+# detected by shape (tailnet DNS, IP literals), not by one host name.
+PROHIBITED_MARKERS = ("CANARY",)
 
 
 def load_gallery(path: str = EXAMPLES_PATH) -> dict:
@@ -60,7 +62,8 @@ def _verify_question(client, entry: dict) -> dict:
     status = payload.get("status")
     record["status"] = status
 
-    record["disclosure"] = any(s in body for s in PROHIBITED_SUBSTRINGS)
+    record["disclosure"] = (contains_private_endpoint(body)
+                            or any(s in body for s in PROHIBITED_MARKERS))
     trace_events = {e.get("event") for e in (payload.get("trace") or [])}
 
     if entry["outcome"] == "answerable":
