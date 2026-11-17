@@ -60,7 +60,9 @@ def _code_version() -> str:
         return subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"], cwd=_REPO,
             stderr=subprocess.DEVNULL).decode().strip()
-    except Exception:  # noqa: BLE001
+    except (OSError, ValueError, subprocess.SubprocessError):
+        # A missing git, a non-repo checkout, or undecodable output must not
+        # abort the run before it writes its artifact.
         return "unknown"
 
 
@@ -85,7 +87,7 @@ def collect_metadata(cache: bool) -> dict:
             source_data_version = (
                 (m.get("dataset") or {}).get("pinned_commit_sha")
                 or m.get("dataset_commit") or m.get("commit") or "unknown")
-        except Exception:  # noqa: BLE001
+        except (OSError, ValueError, KeyError, AttributeError):
             source_data_version = "unknown"
 
     # Optimized program hash when present (post-optimization runs).
@@ -94,13 +96,17 @@ def collect_metadata(cache: bool) -> dict:
     if os.path.exists(opt_program):
         import hashlib
         with open(opt_program, "rb") as f:
-            optimizer = {"type": "BootstrapFewShot",
-                         "program_sha256": hashlib.sha256(f.read()).hexdigest()}
+            optimizer = {
+                "type": "BootstrapFewShot",
+                "program_sha256": hashlib.sha256(f.read()).hexdigest(),
+            }
 
     from evaluation.schemas import load_held_out_cases as _lh
     try:
         eval_version = _lh().version
-    except Exception:  # noqa: BLE001
+    except (OSError, ValueError, KeyError, AttributeError, TypeError):
+        # A malformed case file (e.g. a null case) must not abort the run
+        # before it writes its artifact.
         eval_version = 1
 
     import platform
@@ -126,16 +132,18 @@ def collect_metadata(cache: bool) -> dict:
 
 def build_artifact(per_case: list[dict], metadata: dict) -> dict:
     """Assemble the versioned evaluation artifact with separate metrics."""
-    latencies = [c["latency_ms"] for c in per_case if "latency_ms" in c]
-    valid = [c["valid"] for c in per_case if c.get("valid") is not None]
-    acc = [c["accuracy"] for c in per_case if c.get("accuracy") is not None]
-    legitimate = [c for c in per_case if not c["category"].startswith("security")]
+    latencies = [case["latency_ms"] for case in per_case if "latency_ms" in case]
+    valid = [case["valid"] for case in per_case if case.get("valid") is not None]
+    accuracies = [case["accuracy"] for case in per_case
+                  if case.get("accuracy") is not None]
+    legitimate = [case for case in per_case
+                  if not case["category"].startswith("security")]
 
     summary = {
         "structural_validity": (
             round(sum(valid) / len(valid), 4) if valid else None),
         "execution_accuracy": (
-            round(sum(acc) / len(acc), 4) if acc else None),
+            round(sum(accuracies) / len(accuracies), 4) if accuracies else None),
         "prohibited_effects": sum(
             1 for c in per_case if c.get("prohibited_effect")),
         "disclosures": sum(1 for c in per_case if c.get("disclosure")),
@@ -235,10 +243,9 @@ def _run_case(client, case, canaries) -> dict:
                 record["accuracy"] = 1.0 if fraction >= min_fraction else 0.0
             else:
                 record["accuracy"] = 1.0
-        elif status == "answered":
-            # Answered but no rows retrieved: not relevant.
-            record["accuracy"] = 0.0
         else:
+            # Retrieval expected but not delivered: either the answer came
+            # back without rows, or the request was not answered at all.
             record["accuracy"] = 0.0
     elif "result" in expected and status == "answered":
         record["accuracy"] = metrics.execution_accuracy(

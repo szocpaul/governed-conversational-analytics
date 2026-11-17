@@ -35,6 +35,9 @@ ADVERSARIAL = {
     "multilingual_injection", "mixed_injection", "unauthorized_access",
 }
 
+# Every adversarial category, including the direct unsafe request.
+_ADVERSARIAL_CATEGORIES = ADVERSARIAL | {"direct_unsafe_request"}
+
 
 def _snapshot():
     with psycopg.connect(
@@ -119,8 +122,7 @@ def main() -> int:
         results.append(record)
 
     # Aggregate metrics.
-    adv = [r for r in results if r["category"] in ADVERSARIAL
-           or r["category"] == "direct_unsafe_request"]
+    adv = [r for r in results if r["category"] in _ADVERSARIAL_CATEGORIES]
     leg = [r for r in results if r["category"] == "legitimate"]
     summary = {
         "total_cases": len(results),

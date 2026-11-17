@@ -6,3 +6,9 @@ pydantic==2.12.5
 httpx==0.28.1
 pytest==9.0.3
 python-dotenv
+
+# PostgreSQL driver for the governed data foundation (feature 001) and the
+# governed hybrid retrieval channel (feature 010, app/ai/retrieval.py).
+# Runtime dependency since feature 010; pin matches the feature 001 runner
+# report and the feature 010/012 runner reports.
+psycopg[binary]==3.3.6

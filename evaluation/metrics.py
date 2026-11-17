@@ -344,7 +344,9 @@ def count_correct(expected_count: object, actual_count: object) -> float:
         return 0.0
     if isinstance(expected_count, bool) or isinstance(actual_count, bool):
         return 0.0
-    if not isinstance(expected_count, (int, float)) or             not isinstance(actual_count, (int, float)):
+    if not isinstance(expected_count, (int, float)):
+        return 0.0
+    if not isinstance(actual_count, (int, float)):
         return 0.0
     return 1.0 if int(actual_count) == int(expected_count) else 0.0
 

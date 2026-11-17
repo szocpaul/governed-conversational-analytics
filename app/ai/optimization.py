@@ -66,25 +66,25 @@ def build_trainset(extra_cases=None) -> list[dspy.Example]:
 
     cases = list(dev.cases)
     if extra_cases:
-        for c in extra_cases:
-            if c.id in held_ids:
+        for extra in extra_cases:
+            if extra.id in held_ids:
                 raise ValueError(
-                    f"held-out case {c.id!r} must not enter optimization")
-            cases.append(c)
+                    f"held-out case {extra.id!r} must not enter optimization")
+            cases.append(extra)
 
     trainset = []
-    for c in cases:
-        if c.id in held_ids:
+    for case in cases:
+        if case.id in held_ids:
             raise ValueError(
-                f"held-out case {c.id!r} must not enter optimization")
-        expected = c.expected or {}
+                f"held-out case {case.id!r} must not enter optimization")
+        expected = case.expected or {}
         # Only supported analytics cases with a labeled request are usable
         # for bootstrap demonstrations.
         if "request" not in expected or "result" not in expected:
             continue
         ex = dspy.Example(
-            case_id=c.id,
-            question=c.question,
+            case_id=case.id,
+            question=case.question,
             expected_request=expected["request"],
             expected_result=expected["result"],
         ).with_inputs("question")
@@ -105,24 +105,24 @@ def build_routing_trainset() -> list[dspy.Example]:
     held_ids = set(load_held_out_cases().ids)
 
     trainset = []
-    for c in dev.cases:
-        if c.id in held_ids:
+    for case in dev.cases:
+        if case.id in held_ids:
             raise ValueError(
-                f"held-out case {c.id!r} must not enter optimization")
-        expected = c.expected or {}
-        if c.category.startswith("route_"):
+                f"held-out case {case.id!r} must not enter optimization")
+        expected = case.expected or {}
+        if case.category.startswith("route_"):
             route = expected.get("route")
             if not route:
                 continue
-        elif c.category == "count_content":
+        elif case.category == "count_content":
             # Feature 012: a count-over-content case carries an implicit
             # routing label — the classifier must route it to content_count.
             route = "content_count"
         else:
             continue
         ex = dspy.Example(
-            case_id=c.id,
-            question=c.question,
+            case_id=case.id,
+            question=case.question,
             expected_route=route,
             expected_ticket_id=expected.get("ticket_id"),
         ).with_inputs("question")
@@ -157,8 +157,10 @@ def _execute_read_only(request: dict):
         if evidence.aggregate:
             return dict(evidence.aggregate)
         if req.group_by:
-            return {"groups": [dict(r) for r in evidence.rows],
-                    "row_count": evidence.row_count}
+            return {
+                "groups": [dict(r) for r in evidence.rows],
+                "row_count": evidence.row_count,
+            }
         return {"row_count": evidence.row_count}
     except Exception:  # noqa: BLE001
         return None
@@ -406,7 +408,8 @@ class ExecutableQueryProgram(dspy.Module):
                 elif getattr(request, "group_by", None):
                     execution_result = {
                         "groups": [dict(r) for r in evidence.rows],
-                        "row_count": evidence.row_count}
+                        "row_count": evidence.row_count,
+                    }
                 else:
                     execution_result = {"row_count": evidence.row_count}
             except GraphJinError:
@@ -477,7 +480,7 @@ def run_optimization(output_program: str = OPTIMIZED_PROGRAM_PATH,
         return 2
 
     try:
-        optimized, meta = compile_program(trainset=trainset)
+        optimized, _meta = compile_program(trainset=trainset)
         os.makedirs(os.path.dirname(output_program), exist_ok=True)
         optimized.save(output_program)
 
@@ -493,8 +496,9 @@ def run_optimization(output_program: str = OPTIMIZED_PROGRAM_PATH,
                     cid = q_to_id.get(q)
                     if cid:
                         accepted.append(cid)
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001 - recorded, never swallowed
+            run_meta["errors"].append(
+                f"accepted demo id collection failed: {exc}")
         run_meta["accepted_demo_ids"] = sorted(set(accepted))
         # Isolation proof: accepted demos must be a subset of dev IDs.
         assert_no_held_out_leakage(run_meta["accepted_demo_ids"])
@@ -558,7 +562,7 @@ def run_routing_optimization(output_program: str = OPTIMIZED_PROGRAM_PATH,
     }
 
     try:
-        program, meta = compile_routing_program(trainset=trainset)
+        program, _meta = compile_routing_program(trainset=trainset)
         os.makedirs(os.path.dirname(output_program), exist_ok=True)
         program.save(output_program)
 
@@ -571,8 +575,9 @@ def run_routing_optimization(output_program: str = OPTIMIZED_PROGRAM_PATH,
                     cid = q_to_id.get(getattr(demo, "question", None))
                     if cid:
                         accepted.append(cid)
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001 - recorded, never swallowed
+            run_meta["errors"].append(
+                f"accepted demo id collection failed: {exc}")
         run_meta["accepted_demo_ids"] = sorted(set(accepted))
         assert_no_held_out_leakage(run_meta["accepted_demo_ids"])
         run_meta["output_program_sha256"] = _sha256(output_program)

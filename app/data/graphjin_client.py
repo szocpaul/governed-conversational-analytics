@@ -136,7 +136,9 @@ def build_graphql(req: StructuredQueryRequest) -> str:
         if rel == "merchants":
             fields.append("merchants { merchant_id merchant_name sector tier region }")
         elif rel == "agents":
-            fields.append("agents { agent_id agent_name tier primary_category shift_region efficiency_multiplier }")
+            fields.append(
+                "agents { agent_id agent_name tier primary_category "
+                "shift_region efficiency_multiplier }")
         elif rel == "tickets":
             fields.append("tickets { ticket_id category priority }")
     if not fields:
