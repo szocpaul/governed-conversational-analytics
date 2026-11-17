@@ -60,7 +60,9 @@ def _code_version() -> str:
         return subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"], cwd=_REPO,
             stderr=subprocess.DEVNULL).decode().strip()
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, ValueError, subprocess.SubprocessError):
+        # A missing git, a non-repo checkout, or undecodable output must not
+        # abort the run before it writes its artifact.
         return "unknown"
 
 
@@ -102,7 +104,9 @@ def collect_metadata(cache: bool) -> dict:
     from evaluation.schemas import load_held_out_cases as _lh
     try:
         eval_version = _lh().version
-    except (OSError, ValueError, KeyError, AttributeError):
+    except (OSError, ValueError, KeyError, AttributeError, TypeError):
+        # A malformed case file (e.g. a null case) must not abort the run
+        # before it writes its artifact.
         eval_version = 1
 
     import platform
