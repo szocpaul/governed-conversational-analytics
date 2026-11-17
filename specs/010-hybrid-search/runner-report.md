@@ -147,8 +147,8 @@ manifest's run config context).
 ## 13. Known limitations
 
 - **`source_gguf_sha256` is `"unrecorded"`** in `data/raw/embeddings-manifest.json`.
-  The GGUF file lives on the operator's Windows machine (desktop-c5ikame-1) and
-  its SHA-256 could not be computed from this Linux host. The preflight artifact
+  The GGUF file lives on the operator's Windows machine and its SHA-256
+  could not be computed from this Linux host. The preflight artifact
   (2026-10-13) explicitly deferred this to "generation time (operator-side
   certutil)". The CLI supports an `EMBED_SOURCE_GGUF_SHA256` env override; the
   operator should supply the hash (e.g. `certutil -hashfile
