@@ -261,6 +261,75 @@ def load_generated_texts(tickets_raw):
     return entries, texts_manifest
 
 
+def validate_imported_rows(cur, merchants, agents, tickets):
+    """Check that the imported row counts match the validated source rows."""
+    cur.execute("SELECT count(*) FROM itsm.merchants")
+    n_merchants = cur.fetchone()[0]
+    cur.execute("SELECT count(*) FROM itsm.agents")
+    n_agents = cur.fetchone()[0]
+    cur.execute("SELECT count(*) FROM itsm.tickets")
+    n_tickets = cur.fetchone()[0]
+    if (n_merchants, n_agents, n_tickets) != (
+            len(merchants), len(agents), len(tickets)):
+        raise ImportValidationError(
+            f"post-import row counts differ from source: "
+            f"merchants {n_merchants}/{len(merchants)}, "
+            f"agents {n_agents}/{len(agents)}, "
+            f"tickets {n_tickets}/{len(tickets)}")
+
+
+def validate_foreign_keys(cur):
+    """Check that every ticket resolves to a merchant and (if set) an agent."""
+    cur.execute(
+        "SELECT count(*) FROM itsm.tickets t LEFT JOIN itsm.merchants m "
+        "ON m.merchant_id = t.merchant_id WHERE m.merchant_id IS NULL")
+    if cur.fetchone()[0]:
+        raise ImportValidationError(
+            "unresolved merchant foreign keys after import")
+    cur.execute(
+        "SELECT count(*) FROM itsm.tickets t LEFT JOIN itsm.agents a "
+        "ON a.agent_id = t.assigned_agent_id "
+        "WHERE t.assigned_agent_id IS NOT NULL AND a.agent_id IS NULL")
+    if cur.fetchone()[0]:
+        raise ImportValidationError(
+            "unresolved agent foreign keys after import")
+
+
+def validate_generated_columns(cur, tickets_raw):
+    """Check the feature 009 generated text columns (feature 009)."""
+    cur.execute(
+        "SELECT count(*) FROM itsm.tickets WHERE "
+        "short_description IS NULL OR description IS NULL")
+    if cur.fetchone()[0]:
+        raise ImportValidationError(
+            "generated columns short_description/description "
+            "incomplete after import")
+    open_ids = {tid for tid, r in ((int(x["ticket_id"]), x) for x in tickets_raw)
+                if not r["closed_at"].strip()}
+    cur.execute(
+        "SELECT count(*) FROM itsm.tickets WHERE resolution_notes IS NULL")
+    n_null = cur.fetchone()[0]
+    if n_null != len(open_ids):
+        raise ImportValidationError(
+            f"resolution_notes NULL count {n_null} != open ticket "
+            f"count {len(open_ids)} after import")
+
+
+def validate_embeddings(cur):
+    """Check the feature 010 embedding column (feature 010)."""
+    cur.execute(
+        "SELECT count(*) FROM itsm.tickets WHERE embedding IS NULL")
+    if cur.fetchone()[0]:
+        raise ImportValidationError(
+            "embedding column incomplete after import")
+    cur.execute(
+        "SELECT count(*) FROM itsm.tickets WHERE "
+        "vector_dims(embedding) != %s", (EMBEDDING_DIMENSION,))
+    if cur.fetchone()[0]:
+        raise ImportValidationError(
+            f"embedding dimension != {EMBEDDING_DIMENSION} after import")
+
+
 def main():
     with open(MANIFEST_PATH, encoding="utf-8") as fh:
         manifest = json.load(fh)
@@ -388,74 +457,26 @@ def main():
                         emb_rows)
 
                 # Post-import validation inside the transaction.
-                cur.execute("SELECT count(*) FROM itsm.merchants")
-                n_merchants = cur.fetchone()[0]
-                cur.execute("SELECT count(*) FROM itsm.agents")
-                n_agents = cur.fetchone()[0]
-                cur.execute("SELECT count(*) FROM itsm.tickets")
-                n_tickets = cur.fetchone()[0]
-                if (n_merchants, n_agents, n_tickets) != (
-                        len(merchants), len(agents), len(tickets)):
-                    raise ImportValidationError(
-                        f"post-import row counts differ from source: "
-                        f"merchants {n_merchants}/{len(merchants)}, "
-                        f"agents {n_agents}/{len(agents)}, tickets {n_tickets}/{len(tickets)}")
-                cur.execute(
-                    "SELECT count(*) FROM itsm.tickets t LEFT JOIN itsm.merchants m "
-                    "ON m.merchant_id = t.merchant_id WHERE m.merchant_id IS NULL")
-                if cur.fetchone()[0]:
-                    raise ImportValidationError("unresolved merchant foreign keys after import")
-                cur.execute(
-                    "SELECT count(*) FROM itsm.tickets t LEFT JOIN itsm.agents a "
-                    "ON a.agent_id = t.assigned_agent_id "
-                    "WHERE t.assigned_agent_id IS NOT NULL AND a.agent_id IS NULL")
-                if cur.fetchone()[0]:
-                    raise ImportValidationError("unresolved agent foreign keys after import")
+                validate_imported_rows(cur, merchants, agents, tickets)
+                validate_foreign_keys(cur)
                 # Feature 009: post-import generated-columns checks inside the
                 # transaction (counts + NULL rule against tickets.csv).
                 if generated is not None:
-                    entries, _tm = generated
-                    cur.execute(
-                        "SELECT count(*) FROM itsm.tickets WHERE "
-                        "short_description IS NULL OR description IS NULL")
-                    if cur.fetchone()[0]:
-                        raise ImportValidationError(
-                            "generated columns short_description/description "
-                            "incomplete after import")
-                    open_ids = {tid for tid, r in ((int(x["ticket_id"]), x) for x in tickets_raw)
-                                if not r["closed_at"].strip()}
-                    cur.execute(
-                        "SELECT count(*) FROM itsm.tickets WHERE resolution_notes IS NULL")
-                    n_null = cur.fetchone()[0]
-                    if n_null != len(open_ids):
-                        raise ImportValidationError(
-                            f"resolution_notes NULL count {n_null} != open ticket "
-                            f"count {len(open_ids)} after import")
+                    validate_generated_columns(cur, tickets_raw)
                 # Feature 010: post-import embedding checks inside the
                 # transaction (count + dimension).
                 if embeddings is not None:
-                    cur.execute(
-                        "SELECT count(*) FROM itsm.tickets WHERE embedding IS NULL")
-                    if cur.fetchone()[0]:
-                        raise ImportValidationError(
-                            "embedding column incomplete after import")
-                    cur.execute(
-                        "SELECT count(*) FROM itsm.tickets WHERE "
-                        "vector_dims(embedding) != %s", (EMBEDDING_DIMENSION,))
-                    if cur.fetchone()[0]:
-                        raise ImportValidationError(
-                            f"embedding dimension != {EMBEDDING_DIMENSION} "
-                            "after import")
-    except Exception:
-        conn.close()
-        raise
-    else:
+                    validate_embeddings(cur)
+    finally:
         conn.close()
 
     manifest["import"] = {
         "imported_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "row_counts": {"merchants": len(merchants), "agents": len(agents),
-                       "tickets": len(tickets)},
+        "row_counts": {
+            "merchants": len(merchants),
+            "agents": len(agents),
+            "tickets": len(tickets),
+        },
         "validation": {
             "passed": True,
             "checks": [

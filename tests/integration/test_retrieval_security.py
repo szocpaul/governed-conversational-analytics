@@ -14,6 +14,8 @@ import psycopg
 import pytest
 from fastapi.testclient import TestClient
 
+from app.security.redaction import contains_private_endpoint
+
 REPO_ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 
 POSTGRES_USER = os.environ.get("POSTGRES_USER", "itsm_owner")
@@ -39,7 +41,7 @@ def client():
     os.environ["LLM_TEMPERATURE"] = "0"
     os.environ["LLM_CACHE"] = "false"
     from app.main import app
-from app.security.redaction import contains_private_endpoint
+
     with TestClient(app) as c:
         yield c
 

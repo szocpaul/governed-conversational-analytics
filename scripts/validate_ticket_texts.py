@@ -262,7 +262,9 @@ def check_english_only(entries: list[dict]) -> list[Violation]:
 _SECRETS_PATTERNS = [
     ("password assignment", re.compile(r"password\s*[:=]\s*\S+", re.IGNORECASE)),
     ("bearer token", re.compile(r"\bbearer\s+[A-Za-z0-9._~+/=-]{8,}", re.IGNORECASE)),
-    ("api key", re.compile(r"\b(?:api[_-]?key|apikey|access[_-]?token|secret[_-]?key)\s*[:=]\s*\S+", re.IGNORECASE)),
+    ("api key", re.compile(
+        r"\b(?:api[_-]?key|apikey|access[_-]?token|secret[_-]?key)\s*[:=]\s*\S+",
+        re.IGNORECASE)),
     ("api-key shape", re.compile(r"\bsk-[A-Za-z0-9]{12,}\b")),
     ("PEM header", re.compile(r"-----BEGIN [A-Z ]*-----")),
     ("e-mail address", re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")),
@@ -323,7 +325,8 @@ CATEGORY_LEXICON: dict[tuple[str, str], dict[str, list[str]]] = {
         "exclusive_conflict": [],
     },
     ("Account Access", "SSO Failure"): {
-        "required": ["sso", "single sign-on", "single sign on", "saml", "identity provider", "login", "sign in", "sign-in"],
+        "required": ["sso", "single sign-on", "single sign on", "saml",
+                     "identity provider", "login", "sign in", "sign-in"],
         "exclusive_conflict": [],
     },
     ("Account Access", "User Permissions"): {
@@ -363,7 +366,8 @@ CATEGORY_LEXICON: dict[tuple[str, str], dict[str, list[str]]] = {
         "exclusive_conflict": [],
     },
     ("Payments & Checkout", "3DS Authentication"): {
-        "required": ["3ds", "3-d secure", "3d secure", "authentication", "verification", "challenge", "payment"],
+        "required": ["3ds", "3-d secure", "3d secure", "authentication",
+                     "verification", "challenge", "payment"],
         "exclusive_conflict": [],
     },
     ("Payments & Checkout", "Card Declines"): {
@@ -429,28 +433,37 @@ def check_category_consistency(entries: list[dict], tickets: list[dict]) -> list
         # "email"). Presence of the ticket's own topic is the primary
         # consistency signal.
         own_topic_present = any(kw.lower() in haystack for kw in lex["required"])
-        if not own_topic_present:
-            violations.append(Violation(
-                "category-consistency", tid,
-                f"no required keyword of {sub_category!r} found "
-                f"(any of {lex['required']!r})"))
-        # Exclusive-conflict check: an other-category marker only signals a
-        # CONTRADICTION when the ticket's own topic is absent. Cross-category
-        # vocabulary naturally appears in topically-correct tickets of this
-        # dataset (a Notifications ticket about password-reset emails; an API
-        # timeout surfacing as login failures), so an exclusive marker on a
-        # ticket whose own topic IS present is not a contradiction and is
-        # left to the human MANUAL GATE, not the deterministic suite.
-        if not own_topic_present:
-            for other_category, keywords in CATEGORY_EXCLUSIVE_KEYWORDS.items():
-                if other_category == category:
-                    continue
-                for kw in keywords:
-                    if _keyword_present(haystack, kw):
-                        violations.append(Violation(
-                            "category-consistency", tid,
-                            f"text appears to belong to {other_category!r} "
-                            f"(keyword {kw!r}) but the ticket is {category!r}"))
+        if own_topic_present:
+            # Exclusive-conflict check: an other-category marker only signals a
+            # CONTRADICTION when the ticket's own topic is absent. Cross-category
+            # vocabulary naturally appears in topically-correct tickets of this
+            # dataset (a Notifications ticket about password-reset emails; an API
+            # timeout surfacing as login failures), so an exclusive marker on a
+            # ticket whose own topic IS present is not a contradiction and is
+            # left to the human MANUAL GATE, not the deterministic suite.
+            continue
+        violations.append(Violation(
+            "category-consistency", tid,
+            f"no required keyword of {sub_category!r} found "
+            f"(any of {lex['required']!r})"))
+        violations.extend(
+            _exclusive_conflict_violations(tid, category, haystack))
+    return violations
+
+
+def _exclusive_conflict_violations(tid: int, category: str,
+                                   haystack: str) -> list[Violation]:
+    """Return violations for exclusive keywords of the other categories."""
+    violations = []
+    for other_category, keywords in CATEGORY_EXCLUSIVE_KEYWORDS.items():
+        if other_category == category:
+            continue
+        for kw in keywords:
+            if _keyword_present(haystack, kw):
+                violations.append(Violation(
+                    "category-consistency", tid,
+                    f"text appears to belong to {other_category!r} "
+                    f"(keyword {kw!r}) but the ticket is {category!r}"))
     return violations
 
 

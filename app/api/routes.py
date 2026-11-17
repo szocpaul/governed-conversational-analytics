@@ -30,6 +30,7 @@ from app.ai.retrieval import (
     validate_retrieval_request,
 )
 from app.api.schemas import (
+    AnswerStatus,
     Evidence,
     QuestionRequest,
     QueryResponse,
@@ -235,10 +236,23 @@ def _run_count(trace: Trace, question: str) -> QueryResponse:
     return _response("answered", redact(answered.answer), trace, evidence)
 
 
-def _response(status: str, answer: str, trace: Trace,
+# Pipeline error code -> stable answer status (spec 002 failure behavior:
+# ambiguity -> clarification, unsupported / policy violation -> unsupported,
+# dependency failure -> dependency_error).
+_ERROR_STATUS: dict[str, AnswerStatus] = {
+    "ambiguous": "clarification",
+    "dependency_error": "dependency_error",
+    "error": "dependency_error",
+    "malformed_plan": "unsupported",
+    "unsupported": "unsupported",
+    "validation_error": "unsupported",
+}
+
+
+def _response(status: AnswerStatus, answer: str, trace: Trace,
               evidence: Evidence | None = None) -> QueryResponse:
     return QueryResponse(
-        status=status,  # type: ignore[arg-type]
+        status=status,
         answer=answer,
         evidence=evidence,
         trace=trace.events,
@@ -292,7 +306,11 @@ def _query_inner(req: QuestionRequest) -> QueryResponse:
         )
     except PipelineError as exc:
         trace.add("error", exc.sanitized)
-        return _response(exc.code, exc.sanitized, trace)
+        return _response(
+            _ERROR_STATUS.get(exc.code, "dependency_error"),
+            exc.sanitized,
+            trace,
+        )
     except Exception as exc:  # noqa: BLE001 - model/endpoint failure
         trace.add("error", f"model dependency failure: {exc}")
         return _response(
